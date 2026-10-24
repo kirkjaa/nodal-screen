@@ -1,0 +1,9 @@
+# Footage and derived data stay out of git; only consented sample clips are added on purpose.
+data/
+*.mp4
+*.mkv
+*.avi
+*.npz
+__pycache__/
+.venv/
+.env
