@@ -7,3 +7,6 @@ data/
 __pycache__/
 .venv/
 .env
+
+# generated from the markdown
+docs/TECHNICAL-summary.html
