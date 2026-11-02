@@ -12,9 +12,11 @@ What this file computes, and how:
   flexion) spaced about one period apart. Assumes the worker repeats one task.
 - Time in RULA action level: share of valid frames at RULA 1-2 (acceptable),
   3-4 (investigate), 5-7 (change), per the RULA action levels.
-- Findings: rules over the joint angles, each with its threshold from sw.ergo
-  (trunk > 45 deg is RULA trunk score 3; upper arm > 90 is score 4; neck > 20
-  is score 3; wrist deviation > WRIST_DEVIATION_DEG). A finding is raised when
+- Findings: rules over the joint angles. Upper arm > 90 deg is RULA upper-arm
+  score 4, neck > 20 deg is RULA neck score 3, wrist deviation uses
+  WRIST_DEVIATION_DEG from sw.ergo. The trunk rule uses 45 deg, inside RULA's
+  20 to 60 deg band (score 3): a review threshold, not a score boundary, chosen
+  so that deep stoops stand out from ordinary leaning. A finding is raised when
   the share of the cycle, or the number of cycles, passes the stated minimum.
 - Early warnings: (a) rising role, when the average RULA of this role over the
   last sessions rises by RISING_DELTA or more from first to last; (b) daily

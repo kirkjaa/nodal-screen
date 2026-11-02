@@ -93,3 +93,11 @@ def test_load_raises_force_score():
     light = ergo.score_take(standing(), TaskInputs(load_kg=1, repeated_over_4_per_min=False))
     heavy = ergo.score_take(standing(), TaskInputs(load_kg=12, repeated_over_4_per_min=True))
     assert heavy["rula_left"]["score_a"][0] >= light["rula_left"]["score_a"][0] + 3
+
+
+def test_bending_the_trunk_does_not_raise_the_shoulder():
+    """A take that mixes upright and bent frames: the shoulder flag must not follow the trunk."""
+    X = np.concatenate([standing(30), bend_trunk(standing(30), 60)])
+    a = ergo.angles(X)
+    assert not a["right_shoulder_raised"].any()
+    assert not a["left_shoulder_raised"].any()

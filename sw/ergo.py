@@ -39,7 +39,7 @@ TRUNK_SIDE_DEG = 10.0
 NECK_TWIST_DEG = 20.0
 NECK_SIDE_DEG = 10.0
 WRIST_DEVIATION_DEG = 15.0
-SHOULDER_RAISE_RATIO = 0.80   # ear-to-shoulder height below 80% of the take's median
+SHOULDER_RAISE_RATIO = 0.80   # ear-to-shoulder distance along the trunk below 80% of the take's median
 NECK_EXTENSION_TOL = 5.0      # backward tilt smaller than this counts as level, not extension
 
 
@@ -199,7 +199,8 @@ def angles(X):
         a[f"{side}_wrist_flexion"] = np.abs(_deg(_dot(m, p), _dot(m, fore)))
         a[f"{side}_wrist_deviation"] = np.abs(_deg(_dot(m, r), _dot(m, fore)))
         ear = L_EAR if side == "left" else R_EAR
-        gap = X[:, ear, 2] - X[:, sh, 2]
+        # ear-to-shoulder distance along the trunk axis, so bending the trunk does not read as a raised shoulder
+        gap = _dot(X[:, ear] - X[:, sh], t_up)
         a[f"{side}_shoulder_raised"] = gap < SHOULDER_RAISE_RATIO * np.nanmedian(gap)
 
     for side, hip, kn, an in (("left", L_HIP, L_KN, L_AN), ("right", R_HIP, R_KN, R_AN)):
