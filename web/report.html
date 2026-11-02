@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strain Watch · Sample report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* NODAL Design System tokens (the same values nodal3d.com and the gait app use) */
+:root{
+  --n-0:#ffffff;--n-25:#fbfbfc;--n-50:#f6f6f7;--n-100:#eeeef0;--n-150:#e4e4e7;--n-200:#d6d6da;
+  --n-300:#b9b9bf;--n-400:#95959c;--n-500:#71717a;--n-600:#52525a;--n-700:#3a3a41;--n-800:#26262b;
+  --n-850:#1b1b1f;--n-900:#121215;--n-950:#0a0a0c;--n-1000:#000000;
+  --live:#c8352b;--ready:#2f6f4f;--alpha:#8a6a1f;--info:#3b5a7a;
+  --font-display:"Space Grotesk","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --ease:cubic-bezier(.2,0,.2,1);
+  --bg:var(--n-0);--card:var(--n-0);--inset:var(--n-50);--text:var(--n-950);--body:var(--n-800);
+  --muted:var(--n-500);--faint:var(--n-400);--rule:var(--n-100);--border:var(--n-200);--strong:var(--n-400);
+  --bone:var(--n-950);--bone-2:var(--n-400);
+}
+[data-theme="dark"]{
+  --bg:var(--n-950);--card:var(--n-900);--inset:var(--n-1000);--text:var(--n-0);--body:var(--n-150);
+  --muted:var(--n-400);--faint:var(--n-500);--rule:var(--n-850);--border:var(--n-800);--strong:var(--n-600);
+  --bone:var(--n-0);--bone-2:var(--n-500);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--body);font-family:var(--font-display);
+  -webkit-font-smoothing:antialiased;transition:background .2s var(--ease),color .2s var(--ease)}
+.mono{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.14em;font-size:11px}
+button{font:inherit;cursor:pointer}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:18px;padding:0 24px;height:56px;border-bottom:1px solid var(--rule)}
+.word{height:18px;display:block}
+[data-theme="dark"] .word{filter:invert(1)}
+.crumb{color:var(--muted);white-space:nowrap} .crumb b{color:var(--text);font-weight:500}
+.spacer{flex:1}
+.chip{border:1px solid var(--border);border-radius:2px;padding:6px 10px;color:var(--muted);white-space:nowrap}
+.chip i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:1px;background:var(--ready)}
+.chip.sample{color:var(--alpha);border-color:var(--alpha)} .chip.sample i{background:var(--alpha)}
+.btn{background:transparent;border:1px solid var(--border);border-radius:4px;padding:7px 12px;color:var(--text)}
+.btn:hover{border-color:var(--strong)}
+.btn:active{transform:translateY(1px)}
+
+/* tabs */
+.tabs{display:flex;gap:28px;padding:0 24px;border-bottom:1px solid var(--rule)}
+.tab{background:none;border:0;padding:14px 0 12px;color:var(--faint);border-bottom:2px solid transparent}
+.tab[aria-selected="true"]{color:var(--text);border-color:var(--text)}
+.panel{display:none} .panel.on{display:grid}
+
+/* health lead layout */
+.lead{grid-template-columns:300px 1fr 340px;min-height:calc(100vh - 56px - 45px - 34px)}
+.side{border-right:1px solid var(--rule);overflow:auto}
+.side.r{border-right:0;border-left:1px solid var(--rule)}
+.blk{padding:18px 20px;border-bottom:1px solid var(--rule)}
+.k{color:var(--muted);margin-bottom:10px}
+.big{font-size:44px;font-weight:300;color:var(--text);letter-spacing:-.02em;line-height:1}
+.big small{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;color:var(--muted);margin-left:6px}
+.lvl{margin-top:8px}
+.red{color:var(--live)} .amb{color:var(--alpha)} .grn{color:var(--ready)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.pair .blk:first-child{border-right:1px solid var(--rule)}
+.mid{font-size:26px;font-weight:300;color:var(--text)}
+.band{display:flex;height:8px;border-radius:2px;overflow:hidden;margin:10px 0 8px;background:var(--inset)}
+.band span{display:block}
+.legend{display:flex;justify-content:space-between;color:var(--muted)}
+.find{border-left:2px solid var(--live);padding:2px 0 2px 12px;margin:0 0 14px;font-size:13.5px;line-height:1.5;color:var(--body)}
+.find.amb{border-color:var(--alpha)}
+.find .mono{display:block;margin-bottom:3px;font-size:10px}
+
+/* stage */
+.stage{position:relative;display:flex;flex-direction:column}
+.stage-h{display:flex;justify-content:space-between;padding:18px 24px 0}
+.read{text-align:right}
+.read .v{font-size:30px;font-weight:300;color:var(--text);line-height:1.15}
+.svgwrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:380px}
+svg.fig{width:min(100%,560px);height:auto}
+.bar{display:flex;align-items:center;gap:16px;padding:10px 24px;border-top:1px solid var(--rule)}
+.bar .btn{min-width:84px}
+.strip{position:relative;height:30px;margin:0 24px 14px;border:1px solid var(--rule);border-radius:2px;overflow:hidden;cursor:pointer}
+.strip canvas{width:100%;height:100%;display:block}
+.cursor{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text)}
+
+/* right column */
+canvas.chart{width:100%;display:block}
+.warn{border:1px solid var(--live);border-radius:6px;padding:12px 14px;margin-bottom:10px;font-size:13.5px;line-height:1.5;color:var(--body)}
+.warn .mono{color:var(--live);display:block;margin-bottom:4px;font-size:10px}
+.warn.amb{border-color:var(--alpha)} .warn.amb .mono{color:var(--alpha)}
+
+/* footer */
+.foot{display:flex;gap:22px;align-items:center;height:34px;padding:0 24px;border-top:1px solid var(--rule);color:var(--muted);overflow:hidden;white-space:nowrap}
+.foot .dot{width:6px;height:6px;border-radius:50%;background:var(--ready);display:inline-block}
+
+/* cards for the other tabs */
+.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;padding:24px;align-content:start}
+.card{border:1px solid var(--border);border-top:2px solid var(--border);border-radius:6px;background:var(--card);padding:18px}
+.card.r{border-top-color:var(--live)} .card.a{border-top-color:var(--alpha)} .card.g{border-top-color:var(--ready)}
+.card .head{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:12px}
+.card .v{font-size:32px;font-weight:300;color:var(--text);letter-spacing:-.02em}
+.card .v small{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--muted);margin-left:4px}
+.card .sub{display:flex;justify-content:space-between;color:var(--muted);margin-top:10px}
+.card p{font-size:13.5px;line-height:1.55;margin:10px 0 0}
+.wide{grid-column:span 2} .full{grid-column:1/-1}
+.lr{display:grid;grid-template-columns:70px 1fr 56px;align-items:center;gap:12px;margin:10px 0}
+.lr .track{height:8px;background:var(--inset);border-radius:2px;position:relative}
+.lr .fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px}
+table.src{width:100%;border-collapse:collapse;font-size:13.5px}
+table.src td{padding:10px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+table.src td:first-child{width:260px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.12em;font-size:11px}
+.note{color:var(--muted);font-size:13px;line-height:1.55;padding:0 24px 24px;max-width:900px}
+@media (max-width:1100px){.lead{grid-template-columns:1fr}.side,.side.r{border:0}.grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <img class="word" src="https://nodal3d.com/assets/logo-wordmark.png" alt="NODAL">
+  <span class="mono crumb">Strain Watch &nbsp;·&nbsp; <b id="h-station">Station</b> &nbsp;·&nbsp; Role: <span id="h-role">role</span></span>
+  <span class="spacer"></span>
+  <span class="chip mono"><i></i><span id="h-frames"></span></span>
+  <span class="chip mono" id="h-detected"><i></i><span></span></span>
+  <span class="chip mono" id="h-reproj"><i></i><span></span></span>
+  <span class="chip mono sample" id="h-kind"><i></i><span></span></span>
+  <button class="btn mono" id="theme">Theme</button>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab mono" role="tab" aria-selected="true" data-p="lead">Health lead</button>
+  <button class="tab mono" role="tab" aria-selected="false" data-p="factors">Risk factors</button>
+  <button class="tab mono" role="tab" aria-selected="false" data-p="balance">Load balance</button>
+  <button class="tab mono" role="tab" aria-selected="false" data-p="role">Role card</button>
+  <button class="tab mono" role="tab" aria-selected="false" data-p="source">Source</button>
+</nav>
+
+<!-- HEALTH LEAD -->
+<main class="panel lead on" id="p-lead">
+  <aside class="side">
+    <div class="blk">
+      <div class="mono k">Posture risk · this session</div>
+      <div class="pair" style="margin:0 -20px">
+        <div class="blk" style="border-bottom:0;padding-top:0">
+          <div class="mono k">RULA · peak</div>
+          <div class="big"><span id="pk-rula">-</span><small>/ 7</small></div>
+          <div class="mono lvl" id="pk-rula-l"></div>
+        </div>
+        <div class="blk" style="border-bottom:0;padding-top:0">
+          <div class="mono k">REBA · peak</div>
+          <div class="big"><span id="pk-reba">-</span><small>/ 15</small></div>
+          <div class="mono lvl" id="pk-reba-l"></div>
+        </div>
+      </div>
+    </div>
+    <div class="blk">
+      <div class="mono k">Time in RULA action level</div>
+      <div class="band" id="band"></div>
+      <div class="legend mono" id="band-legend"></div>
+    </div>
+    <div class="pair">
+      <div class="blk"><div class="mono k">Cycle time</div><div class="mid"><span id="s-cycle">-</span> <span class="mono" style="color:var(--muted)">s</span></div></div>
+      <div class="blk"><div class="mono k">Cycles</div><div class="mid" id="s-cycles">-</div></div>
+    </div>
+    <div class="blk">
+      <div class="mono k">Findings · review the task</div>
+      <div id="findings"></div>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <div class="stage-h">
+      <div class="mono" style="color:var(--muted);line-height:1.9" id="stage-note">Markerless 3D · side view<br>triangulated</div>
+      <div class="read">
+        <div class="mono" style="color:var(--muted)">Trunk flexion</div>
+        <div class="v" id="r-trunk">0°</div>
+        <div class="mono" style="color:var(--muted);margin-top:8px">RULA now</div>
+        <div class="v" id="r-rula">-</div>
+      </div>
+    </div>
+    <div class="svgwrap">
+      <svg class="fig" viewBox="0 0 600 600" id="fig" aria-label="Skeleton replay"></svg>
+    </div>
+    <div class="bar">
+      <button class="btn mono" id="play">Pause</button>
+      <span class="mono" style="color:var(--muted)" id="clock">Cycle 1 · 0.0 s</span>
+      <span class="spacer"></span>
+      <span class="mono" style="color:var(--muted)">RULA per frame · whole session</span>
+    </div>
+    <div class="strip" id="strip"><canvas id="heat"></canvas><div class="cursor" id="cur"></div></div>
+  </section>
+
+  <aside class="side r">
+    <div class="blk">
+      <div class="mono k">Exposure clock · RULA across the cycle</div>
+      <canvas class="chart" id="clockc" height="260"></canvas>
+    </div>
+    <div class="blk">
+      <div class="mono k" id="trend-k">Trend · role</div>
+      <canvas class="chart" id="trend" height="150"></canvas>
+    </div>
+    <div class="blk">
+      <div class="mono k">Early warnings</div>
+      <div id="warnings"></div>
+    </div>
+  </aside>
+</main>
+
+<!-- RISK FACTORS -->
+<main class="panel grid" id="p-factors">
+  <div id="factors" style="display:contents"></div>
+  <div class="card full"><div class="head mono"><span>Task inputs · not visible on video</span><span>Set by the health lead</span></div>
+    <p id="task-inputs"></p></div>
+</main>
+
+<!-- LOAD BALANCE -->
+<main class="panel grid" id="p-balance">
+  <div class="card wide">
+    <div class="head mono"><span>Left / right · share of time in risk</span><span id="bal-side"></span></div>
+    <div id="bal-rows"></div>
+  </div>
+  <div class="card wide a">
+    <div class="head mono"><span>One-sided work</span><span>Review</span></div>
+    <div class="v"><span id="bal-ratio">-</span><small id="bal-ratio-l"></small></div>
+    <p id="bal-text"></p>
+  </div>
+</main>
+
+<!-- ROLE CARD -->
+<main class="panel grid" id="p-role">
+  <div class="card wide">
+    <div class="head mono"><span id="rc-role">Role</span><span id="rc-station">Station</span></div>
+    <div class="v"><span id="rc-avg">-</span><small id="rc-avg-l">avg RULA</small></div>
+    <p id="rc-text"></p>
+  </div>
+  <div class="card wide r">
+    <div class="head mono"><span>Suggested review</span><span>For the health lead</span></div>
+    <p id="rc-review"></p>
+  </div>
+  <div class="card full"><div class="head mono"><span>Screening only</span><span></span></div>
+    <p>Strain Watch screens for posture risk using RULA and REBA. It does not diagnose. A qualified occupational health professional reviews every flag before any change is made.</p></div>
+</main>
+
+<!-- SOURCE -->
+<main class="panel" id="p-source" style="padding:24px">
+  <table class="src" id="src"></table>
+  <p class="note" style="padding:16px 0 0" id="src-note"></p>
+</main>
+
+<footer class="foot mono">
+  <span><span class="dot"></span>&nbsp; Skeleton only · video deleted after processing</span>
+  <span id="f-quality"></span><span id="f-cycles"></span>
+  <span class="spacer"></span>
+  <span>Screening only · not a diagnosis</span>
+</footer>
+
+<!-- The report's data. report-data.js is written by `python -m sw.report_data`; without it the sample file loads. -->
+<script src="report-data.js" onerror="var s=document.createElement('script');s.src='report-data.sample.js';document.head.appendChild(s)"></script>
+<script>
+// ---------- tabs and theme
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + t.dataset.p));
+  if (t.dataset.p === 'lead') drawCharts();
+});
+document.getElementById('theme').onclick = () => {
+  const h = document.documentElement;
+  h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+  drawCharts(); drawHeat();
+};
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const level = r => r <= 2 ? 'ready' : r <= 4 ? 'alpha' : 'live';
+const fmtPct = v => Math.round(v * 100) + '%';
+
+let D = null, F = null, N = 0, DUR = 0, CYC = 1, CYCLE = 1, SCALE = null;
+
+// ---------- fill the panels from the data
+function fill(d) {
+  D = d; F = d.frames; N = F.t.length; DUR = d.session.duration_s; CYC = d.session.cycles || 1; CYCLE = d.session.cycle_s || DUR / CYC;
+  const s = d.session;
+  $('h-station').textContent = `Station ${s.station}`; $('h-role').textContent = s.role;
+  $('h-frames').textContent = `${s.cameras} cam · ${s.frames.toLocaleString()} frames @ ${s.fps} fps`;
+  const det = $('h-detected'), rep = $('h-reproj');
+  if (s.detected_share != null) det.querySelector('span').textContent = `${Math.round(s.detected_share * 100)}% detected`; else det.remove();
+  if (s.reproj_px != null) rep.querySelector('span').textContent = `Reproj ${s.reproj_px} px`; else rep.remove();
+  const kind = $('h-kind'), kindText = {sample: 'Sample data · not a measurement', synthetic: 'Synthetic worker · not a recording', measured: 'Measured session'}[d.data_kind] || d.data_kind;
+  kind.querySelector('span').textContent = kindText;
+  kind.classList.toggle('sample', d.data_kind !== 'measured');
+  $('stage-note').innerHTML = (d.data_kind === 'synthetic' ? 'Synthetic 3D · side view<br>posture parameters, not video' : 'Markerless 3D · side view<br>133 keypoints · triangulated');
+
+  // peaks and levels
+  $('pk-rula').textContent = d.peaks.rula; $('pk-reba').textContent = d.peaks.reba;
+  const rl = $('pk-rula-l'); rl.textContent = d.peaks.rula_action; rl.className = 'mono lvl ' + (d.peaks.rula >= 5 ? 'red' : d.peaks.rula >= 3 ? 'amb' : 'grn');
+  const bl = $('pk-reba-l'); bl.textContent = d.peaks.reba_risk; bl.className = 'mono lvl ' + (d.peaks.reba >= 8 ? 'red' : d.peaks.reba >= 4 ? 'amb' : 'grn');
+  const L = d.levels;
+  $('band').innerHTML = `<span style="width:${L.accept*100}%;background:var(--ready)"></span><span style="width:${L.investigate*100}%;background:var(--alpha)"></span><span style="width:${L.change*100}%;background:var(--live)"></span>`;
+  $('band-legend').innerHTML = `<span class="grn">Accept ${fmtPct(L.accept)}</span><span class="amb">Investigate ${fmtPct(L.investigate)}</span><span class="red">Change ${fmtPct(L.change)}</span>`;
+  $('s-cycle').textContent = s.cycle_s; $('s-cycles').textContent = s.cycles;
+  $('findings').innerHTML = d.findings.length ? d.findings.map(f =>
+    `<div class="find ${f.severity === 'amber' ? 'amb' : ''}"><span class="mono ${f.severity === 'amber' ? 'amb' : 'red'}">${esc(f.label)} · ${esc(f.when)}</span>${esc(f.text)}</div>`).join('')
+    : '<div class="find amb"><span class="mono amb">No finding</span>No posture rule passed its threshold in this session.</div>';
+  $('trend-k').textContent = `Trend · role: ${s.role} · last ${d.trend.length} sessions`;
+  $('warnings').innerHTML = d.warnings.map(w => w.kind === 'note'
+    ? `<p class="note">${esc(w.text)}</p>`
+    : `<div class="warn ${w.severity === 'amber' ? 'amb' : ''}"><span class="mono">${w.kind === 'rising' ? 'Rising · role' : 'Daily exposure'}</span>${esc(w.text)}</div>`).join('');
+
+  // risk factors
+  $('factors').innerHTML = d.factors.map(f =>
+    `<div class="card ${f.grade}"><div class="head mono"><span>${esc(f.name)}</span><span>${esc(f.score)}</span></div><div class="v">${esc(f.value)}<small>${esc(f.unit)}</small></div><div class="sub mono"><span>${esc(f.share_text)}</span><span>${esc(f.ref)}</span></div></div>`).join('');
+  const ti = d.task_inputs;
+  $('task-inputs').textContent = `Load ${ti.load_kg} kg per part · ${ti.repeated_over_4_per_min ? 'repeated more than 4 times a minute' : 'not repeated more than 4 times a minute'} · grip ${['good','fair','poor','unacceptable'][ti.coupling] || 'good'} · wrist twist assumed ${ti.wrist_twist_end_range ? 'at end of range' : 'mid-range'}. These go into the RULA and REBA force, activity and coupling scores and are shown here so a reviewer can change them.`;
+
+  // balance
+  const B = d.balance;
+  $('bal-side').textContent = `${B.heavier === 'right' ? 'Right' : 'Left'} side heavier`;
+  $('bal-rows').innerHTML = B.rows.map(r => {
+    const col = v => v > 0.35 ? 'var(--live)' : v > 0.2 ? 'var(--alpha)' : 'var(--info)';
+    return `<div class="lr mono"><span>${esc(r.joint)}</span><div class="track"><div class="fill" style="width:${r.left*100}%;background:${col(r.left)}"></div></div><span>L ${fmtPct(r.left)}</span></div>` +
+           `<div class="lr mono"><span></span><div class="track"><div class="fill" style="width:${r.right*100}%;background:${col(r.right)}"></div></div><span>R ${fmtPct(r.right)}</span></div>`;
+  }).join('');
+  $('bal-ratio').textContent = B.ratio >= 1 ? B.ratio.toFixed(1) : (1 / Math.max(B.ratio, 0.01)).toFixed(1);
+  $('bal-ratio-l').textContent = B.heavier === 'right' ? '× right vs left' : '× left vs right';
+  $('bal-text').textContent = B.ratio >= 1.5 || B.ratio <= 0.67
+    ? `The ${B.heavier} arm carries most of the reaching and placing. Moving the farthest bin to the other side, or alternating hands, would split the load.`
+    : 'The load is shared between the two arms; no change suggested on this count.';
+
+  // role card
+  $('rc-role').textContent = `Role · ${s.role}`; $('rc-station').textContent = `Station ${s.station}`;
+  $('rc-avg').textContent = d.role_card.avg_rula.toFixed(1); $('rc-avg-l').textContent = `avg RULA · ${d.role_card.sessions} session${d.role_card.sessions === 1 ? '' : 's'}`;
+  $('rc-text').textContent = `${d.role_card.workers} worker${d.role_card.workers === 1 ? '' : 's'} in this role, shown as anonymous IDs only. Reports are by role and station; no names are stored and scores are never used to rate a worker's output.`;
+  const review = [];
+  if (d.findings.some(f => f.key === 'trunk')) review.push('Raise the floor-level bin to bench height.');
+  if (d.findings.some(f => f.key.startsWith('shoulder'))) review.push('Lower the out shelf below shoulder height.');
+  if (d.findings.some(f => f.key === 'neck')) review.push('Tilt the tray toward the worker to reduce neck flexion.');
+  if (d.findings.some(f => f.key === 'wrists')) review.push('Present parts so they can be placed without bending the wrist sideways.');
+  $('rc-review').innerHTML = review.length ? review.map((r, i) => `${String(i + 1).padStart(2, '0')} · ${esc(r)}`).join('<br>') : 'No change suggested from this session.';
+
+  // source
+  const q = [s.detected_share != null ? `${Math.round(s.detected_share * 100)}% of body points placed in 3D` : null,
+             s.reproj_px != null ? `median reprojection error ${s.reproj_px} px` : null,
+             s.floor_tilt_deg != null ? `floor tilt ${s.floor_tilt_deg}°` : null].filter(Boolean).join(' · ');
+  const rows = d.data_kind === 'synthetic' ? [
+    ['Data', 'Synthetic worker: a kitting cycle described by posture parameters (trunk, arms, neck) and turned into a 3D skeleton in the pipeline\'s own format by sw.synth. No camera, no video, no person.'],
+    ['Scoring', 'RULA (McAtamney and Corlett, 1993) and REBA (Hignett and McAtamney, 2000), per frame and per cycle, by the same code that scores recorded sessions'],
+    ['Why', 'To run and show the pipeline end to end before the first recorded session. Every number here is computed by the pipeline from synthetic motion, not measured from a worker.'],
+  ] : [
+    ['Cameras', `${s.cameras} × NODAL M1, global shutter, 1080p at ${s.fps} fps, started together by one radio trigger`],
+    ['Calibration', 'Factory lens calibration per camera; camera positions solved from the worker\'s own joints and refined by bundle adjustment'],
+    ['Pose model', 'RTMW whole-body (OpenMMLab, Apache 2.0), 2D per view, triangulated to 3D'],
+    ['Quality', q || 'not recorded'],
+    ['Scoring', 'RULA (McAtamney and Corlett, 1993) and REBA (Hignett and McAtamney, 2000), per frame and per cycle'],
+    ['Data kept', '3D skeleton and scores only. Video deleted after processing. Reports by role, not name'],
+    ['Processing', 'On NODAL\'s server; no video leaves the site\'s chosen region'],
+  ];
+  $('src').innerHTML = rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('');
+  $('src-note').textContent = {sample: 'Every number on this page is sample data for layout. Real values come from the next recorded session.',
+    synthetic: 'Every number on this page was computed by the pipeline from a synthetic worker. It shows how the report works, not a measurement of anyone.',
+    measured: 'Measured session. Numbers are the pipeline\'s output for this recording; the accuracy limits are in the technical documentation.'}[d.data_kind] || '';
+  $('f-quality').textContent = q || (d.data_kind === 'synthetic' ? 'Synthetic motion' : '');
+  $('f-cycles').textContent = `${s.cycles} cycles · ${Math.round(DUR)} s`;
+
+  // fit the side-view skeleton into the 600 x 600 figure: forward (y) to the right, up (z) to the top
+  const pts = Object.values(F.keypoints).flat();
+  const ys = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+  const y0 = Math.min(...ys), y1 = Math.max(...ys), z0 = Math.min(...zs), z1 = Math.max(...zs);
+  const sc = Math.min(360 / Math.max(0.5, y1 - y0), 500 / Math.max(0.5, z1 - z0));
+  SCALE = {sc, y0, z1, ox: 300 - sc * (y1 - y0) / 2 + 20, oy: 40};
+}
+
+// ---------- frames
+function frameAt(t) {
+  const i = Math.min(N - 1, Math.max(0, Math.floor(t * F.fps)));
+  const P = {};
+  for (const k in F.keypoints) {
+    const [y, z] = F.keypoints[k][i];
+    P[k] = [SCALE.ox + (y - SCALE.y0) * SCALE.sc, SCALE.oy + (SCALE.z1 - z) * SCALE.sc];
+  }
+  P.toe = [P.an[0] + 20, P.an[1] + 6];
+  return {P, rula: F.rula[i], trunk: F.trunk_flexion[i], arm: F.right_upper_arm_flexion[i]};
+}
+
+// ---------- skeleton drawing
+const fig = $('fig');
+const BONES = [['head','neck'],['neck','hip'],['hip','kn'],['kn','an'],['an','toe'],
+               ['neck','el2'],['el2','wr2'],['neck','el'],['el','wr'],['wr','hd']];
+function drawFig(fr) {
+  const {P, trunk, arm} = fr;
+  const col = c => `var(--${c})`;
+  const trunkC = trunk > 45 ? col('live') : trunk > 20 ? col('alpha') : 'var(--bone)';
+  const armC = arm > 90 ? col('live') : arm > 45 ? col('alpha') : 'var(--bone)';
+  const color = {'neck-hip': trunkC, 'neck-el': armC, 'el-wr': armC, 'neck-el2': 'var(--bone-2)', 'el2-wr2': 'var(--bone-2)'};
+  const floor = P.an[1] + 6;
+  let s = `<line x1="120" y1="${floor}" x2="560" y2="${floor}" stroke="var(--border)" stroke-width="1"/>`;
+  for (const [a, b] of BONES) {
+    const c = color[`${a}-${b}`] || 'var(--bone)';
+    const w = (a === 'neck' && b === 'el2') || (a === 'el2') ? 3 : 4;
+    s += `<line x1="${P[a][0]}" y1="${P[a][1]}" x2="${P[b][0]}" y2="${P[b][1]}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+  }
+  for (const k of ['neck','hip','kn','an','el','wr','el2','wr2'])
+    s += `<circle cx="${P[k][0]}" cy="${P[k][1]}" r="5" fill="var(--bg)" stroke="var(--bone)" stroke-width="2"/>`;
+  s += `<circle cx="${P.head[0]}" cy="${P.head[1]}" r="20" fill="none" stroke="var(--bone)" stroke-width="3"/>`;
+  fig.innerHTML = s;
+}
+
+// ---------- heat strip
+const heat = $('heat'), strip = $('strip'), cur = $('cur');
+function drawHeat() {
+  const w = strip.clientWidth, h = strip.clientHeight, dpr = devicePixelRatio || 1;
+  heat.width = w * dpr; heat.height = h * dpr;
+  const g = heat.getContext('2d'); g.scale(dpr, dpr);
+  for (let x = 0; x < w; x++) {
+    const r = F.rula[Math.min(N - 1, Math.floor(x / w * N))];
+    g.fillStyle = css('--' + level(r)); g.globalAlpha = .35 + r * .09;
+    g.fillRect(x, h - (r / 7) * h, 1, (r / 7) * h);
+  }
+  g.globalAlpha = 1; g.fillStyle = css('--strong');
+  for (const t of D.cycle_starts_s.slice(1)) g.fillRect(t / DUR * w, 0, 1, h);
+}
+
+// ---------- charts
+function drawCharts() {
+  const text = css('--text'), muted = css('--muted'), rule = css('--rule');
+  const c = $('clockc'), dpr = devicePixelRatio || 1;
+  const W = c.clientWidth, H = 260; c.width = W * dpr; c.height = H * dpr;
+  let g = c.getContext('2d'); g.scale(dpr, dpr);
+  const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 22;
+  g.strokeStyle = rule; g.lineWidth = 1;
+  for (let k = 1; k <= 7; k += 2) { g.beginPath(); g.arc(cx, cy, R * k / 7, 0, 2 * Math.PI); g.stroke(); }
+  g.fillStyle = muted; g.font = '10px IBM Plex Mono'; g.textAlign = 'center';
+  ['0', '25', '50', '75'].forEach((l, i) => {
+    const a = -Math.PI / 2 + i * Math.PI / 2;
+    g.fillText(l + '%', cx + Math.cos(a) * (R + 13), cy + Math.sin(a) * (R + 13) + 3);
+  });
+  // average RULA at each point of the cycle, over all cycles
+  const S = 120, acc = new Array(S).fill(0), cnt = new Array(S).fill(0);
+  const starts = D.cycle_starts_s;
+  for (let i = 0; i < N; i++) {
+    const t = F.t[i];
+    let k = starts.length - 1; while (k > 0 && starts[k] > t) k--;
+    const u = (t - starts[k]) / CYCLE; if (u < 0 || u >= 1) continue;
+    const b = Math.floor(u * S); acc[b] += F.rula[i]; cnt[b]++;
+  }
+  g.beginPath();
+  for (let s = 0; s <= S; s++) {
+    const b = s % S, r = cnt[b] ? acc[b] / cnt[b] : 1, a = -Math.PI / 2 + s / S * 2 * Math.PI;
+    const x = cx + Math.cos(a) * R * r / 7, y = cy + Math.sin(a) * R * r / 7;
+    s ? g.lineTo(x, y) : g.moveTo(x, y);
+  }
+  g.strokeStyle = text; g.lineWidth = 1.5; g.stroke();
+  g.beginPath(); g.arc(cx, cy, R * 5 / 7, 0, 2 * Math.PI); g.strokeStyle = css('--live'); g.setLineDash([3, 4]); g.stroke(); g.setLineDash([]);
+  g.fillStyle = css('--live'); g.textAlign = 'left'; g.fillText('RULA 5', cx + R * 5 / 7 * .72 + 4, cy - R * 5 / 7 * .72);
+
+  const t = $('trend'), TW = t.clientWidth, TH = 150;
+  t.width = TW * dpr; t.height = TH * dpr; g = t.getContext('2d'); g.scale(dpr, dpr);
+  const vals = D.trend.map(v => v.avg_rula), labels = D.trend.map(v => v.label), n = Math.max(1, vals.length - 1);
+  const x = i => 28 + i * (TW - 50) / n, y = v => TH - 26 - (Math.min(6, Math.max(3, v)) - 3) / 3 * (TH - 46);
+  g.strokeStyle = rule; g.fillStyle = muted; g.font = '10px IBM Plex Mono'; g.textAlign = 'left';
+  [3, 4, 5, 6].forEach(v => { g.beginPath(); g.moveTo(24, y(v)); g.lineTo(TW - 8, y(v)); g.stroke(); g.fillText(v, 4, y(v) + 3); });
+  g.strokeStyle = css('--live'); g.setLineDash([3, 4]); g.beginPath(); g.moveTo(24, y(5)); g.lineTo(TW - 8, y(5)); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = text; g.lineWidth = 1.5; g.beginPath();
+  vals.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v))); g.stroke();
+  vals.forEach((v, i) => { g.beginPath(); g.arc(x(i), y(v), 3.5, 0, 2 * Math.PI); g.fillStyle = i === vals.length - 1 ? css('--live') : text; g.fill();
+    g.fillStyle = muted; g.textAlign = 'center'; g.fillText(labels[i], x(i), TH - 8); });
+}
+
+// ---------- playback
+let playing = true, t0 = performance.now(), offset = 0;
+const play = $('play');
+play.onclick = () => { playing = !playing; play.textContent = playing ? 'Pause' : 'Play'; if (playing) t0 = performance.now() - offset * 1000; };
+strip.onclick = e => { offset = (e.offsetX / strip.clientWidth) * DUR; t0 = performance.now() - offset * 1000; };
+function tick(now) {
+  if (playing) offset = ((now - t0) / 1000) % DUR;
+  const fr = frameAt(offset);
+  drawFig(fr);
+  $('r-trunk').textContent = Math.round(fr.trunk) + '°';
+  const rr = $('r-rula'); rr.textContent = fr.rula; rr.style.color = `var(--${level(fr.rula)})`;
+  let k = D.cycle_starts_s.length - 1; while (k > 0 && D.cycle_starts_s[k] > offset) k--;
+  $('clock').textContent = `Cycle ${k + 1} · ${(offset - D.cycle_starts_s[k]).toFixed(1)} s`;
+  cur.style.left = (offset / DUR * 100) + '%';
+  requestAnimationFrame(tick);
+}
+function start() {
+  if (!window.REPORT_DATA) { setTimeout(start, 50); return; }
+  fill(window.REPORT_DATA);
+  addEventListener('resize', () => { drawHeat(); drawCharts(); });
+  document.fonts.ready.then(() => { drawHeat(); drawCharts(); });
+  drawHeat(); drawCharts(); requestAnimationFrame(tick);
+}
+start();
+</script>
+</body>
+</html>
