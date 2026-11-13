@@ -696,7 +696,7 @@ def _assemble(pelvis, yaw, body: Body, legs, swings, bends):
     return row
 
 
-def _render_gait(person: Person, distance_m: float, zone: bool, yaw: float, origin, n_frames: int | None, duration_s: float | None, task: str):
+def _render_gait(person: Person, distance_m: float, zone: bool, yaw: float, origin, n_frames: int | None, duration_s: float | None, task: str, start_standing: bool = False):
     body = Body.from_height(person.height_m)
     steps, lengths, times, stride_t = _schedule(person, distance_m, zone)
     real = [st for st in steps if not st.get("phantom")]
@@ -721,6 +721,20 @@ def _render_gait(person: Person, distance_m: float, zone: bool, yaw: float, orig
             ph["to_time"] = ph["hs_time"] + frac * (same["hs_time"] - ph["hs_time"])
     if duration_s is not None:
         _scale_schedule(steps, duration_s)
+    if start_standing and ph is not None and len(real) >= 3:
+        # Start from standing, feet side by side: the trailing foot leaves first
+        # and lands one step ahead; the other foot is already flat.
+        first = real[0]
+        same = next(st for st in real if st["side"] == ph["side"])
+        after = next((st for st in real[1:] if st["side"] == first["side"]), None)
+        step_t = same["hs_time"]
+        ph["along_m"] = first["along_m"]
+        ph["to_time"] = max(step_t * 0.2, 0.05)
+        # Flat at t = 0, heel rising from there (stance progress HEEL_OFF at frame 0).
+        ph["hs_time"] = -(HEEL_OFF / (1.0 - HEEL_OFF)) * (ph["to_time"] - 1.0 / FPS)
+        first["hs_time"] = -0.5
+        if after is not None:
+            first["to_time"] = after["hs_time"] - 0.8 * step_t
     finite_to = [step["to_time"] for step in steps if step["to_time"] < step["hs_time"] + 1000]
     end_t = max(finite_to + [step["hs_time"] for step in steps]) + 0.05
     if n_frames is None:
@@ -779,6 +793,13 @@ def _render_gait(person: Person, distance_m: float, zone: bool, yaw: float, orig
         for a, b in zip(seq, seq[1:]):
             if b[0] <= a[0]:
                 b[0] = a[0] + 1e-4
+    if start_standing:
+        # Standing at t = 0 over both feet, then away.
+        base = along(ankle_of_static(_stance_foot(steps[0], 0.4, yaw, origin, body)[0]))
+        keys = [k for k in keys if k[0] > 0.05] + [[0.0, base]]
+        sway = [k for k in sway if k[0] > 0.05] + [[0.0, 0.0]]
+        keys.sort()
+        sway.sort()
     a_of_t = _pchip([k[0] for k in keys], [k[1] for k in keys])
     l_of_t = _pchip([k[0] for k in sway], [k[1] for k in sway])
     frames_t = np.arange(n_frames) / FPS
@@ -809,6 +830,9 @@ def _render_gait(person: Person, distance_m: float, zone: bool, yaw: float, orig
         ha, hl = hip_xy(mid_f, st["side"])
         dh2 = (ha - along(ank)) ** 2 + (hl - across(ank)) ** 2
         z_keys.append((mid, float(ank[2]) + math.sqrt(max(_reach(body, KNEE_MID) ** 2 - dh2, 1.0))))
+    if start_standing:
+        toe0, pitch0 = _stance_foot(steps[0], 0.4, yaw, origin, body)
+        z_keys = [k for k in z_keys if k[0] > 3] + [(0.0, float(ankle_of(toe0, pitch0)[2]) + _reach(body, KNEE_MID))]
     z_keys.sort()
     z_of_f = _pchip([k[0] for k in z_keys], [k[1] for k in z_keys])
     p_z = z_of_f(np.arange(n_frames, dtype=float))
@@ -1020,21 +1044,27 @@ def tug(person: Person, total_s: float):
     stand = _sit_stand_clip(person, counts[0], rising=True)
     kp[0:counts[0]] = stand["kp"]
     cursor = counts[0]
-    out = _render_gait(person, 3.0, False, 0.0, np.zeros(3), counts[1], counts[1] / FPS, "walk10")
+    out = _render_gait(person, 3.0, False, 0.0, np.zeros(3), counts[1], counts[1] / FPS, "walk10", start_standing=True)
     kp[cursor:cursor + counts[1]] = out["kp"][:counts[1]]
     _shift_events(events, out["truth"]["events"], cursor)
     cursor += counts[1]
     kp[cursor:cursor + counts[2]] = _turn_clip(kp[cursor - 1], counts[2], 0.0, math.pi, person)
     cursor += counts[2]
-    back_origin = np.array([3000.0, 0.0, 0.0])
-    back = _render_gait(person, 3.0, False, math.pi, back_origin, counts[3], counts[3] / FPS, "walk10")
+    # The walk back starts from the turned pose: its heels are the new origin.
+    last = kp[cursor - 1]
+    heel_xy = 0.5 * (last[L_HEEL, :2] + last[R_HEEL, :2])
+    back_origin = np.array([float(heel_xy[0]), 0.0, 0.0])
+    back = _render_gait(person, 3.0, False, math.pi, back_origin, counts[3], counts[3] / FPS, "walk10", start_standing=True)
     kp[cursor:cursor + counts[3]] = back["kp"][:counts[3]]
     _shift_events(events, back["truth"]["events"], cursor)
     cursor += counts[3]
     kp[cursor:cursor + counts[4]] = _turn_clip(kp[cursor - 1], counts[4], math.pi, 2 * math.pi, person)
     cursor += counts[4]
     sit = _sit_stand_clip(person, counts[5], rising=False)
-    kp[cursor:cursor + counts[5]] = sit["kp"]
+    shift = 0.5 * (kp[cursor - 1, L_HIP, :2] + kp[cursor - 1, R_HIP, :2]) - 0.5 * (sit["kp"][0, L_HIP, :2] + sit["kp"][0, R_HIP, :2])
+    sit_kp = sit["kp"].copy()
+    sit_kp[:, :, :2] += shift
+    kp[cursor:cursor + counts[5]] = sit_kp
     lengths, _, _ = _step_lengths(person)
     truth = _truth(person, "tug", n, events, lengths, extra={"total_s": total_s, "chair_m": 0.45})
     return _finish(kp, person, truth, "tug")
@@ -1085,24 +1115,27 @@ def _sit_stand_clip(person: Person, n: int, rising: bool):
             0.0,
             sit_z + (stand_z - sit_z) * w,
         ])
-        kp[i] = skeleton(toes["L"], toes["R"], 0.0, 0.0, pelvis, 0.0, swings, bends, body)
+        # Arms forward while seated, hanging once upright, so the walk takes over smoothly.
+        arm = (0.9 * (1.0 - w), 0.9 * (1.0 - w))
+        bend = (1.15 * (1.0 - w) + 0.35 * w, 1.15 * (1.0 - w) + 0.35 * w)
+        kp[i] = skeleton(toes["L"], toes["R"], 0.0, 0.0, pelvis, 0.0, arm, bend, body)
     return {"kp": kp}
 
 
 def _turn_clip(last_row, n: int, yaw0: float, yaw1: float, person: Person):
-    """Pivot. Feet stay at the last frame's toe positions. Yaw changes."""
-    body = Body.from_height(person.height_m)
-    # Recover a planted toe from the last heel/toe by keeping those xy and z=0.
-    left_toe = np.array([last_row[L_BTOE, 0], last_row[L_BTOE, 1], 0.0])
-    right_toe = np.array([last_row[R_BTOE, 0], last_row[R_BTOE, 1], 0.0])
-    pelvis_xy = 0.5 * (last_row[L_HIP, :2] + last_row[R_HIP, :2])
-    stand_z = body.ankle_h + body.leg * math.cos(math.radians(8))
+    """Turn on the spot: the standing pose rotates about the pelvis' vertical axis."""
+    centre = 0.5 * (last_row[L_HIP, :2] + last_row[R_HIP, :2])
     kp = np.zeros((n, 23, 3))
     for i in range(n):
-        w = i / max(n - 1, 1)
-        yaw = yaw0 + (yaw1 - yaw0) * w
-        pelvis = np.array([pelvis_xy[0], pelvis_xy[1], stand_z])
-        kp[i] = skeleton(left_toe, right_toe, 0.0, 0.0, pelvis, yaw, (0.2, 0.2), (0.35, 0.35), body)
+        w = 0.5 - 0.5 * math.cos(math.pi * i / max(n - 1, 1))
+        a = (yaw1 - yaw0) * w
+        c, s_ = math.cos(a), math.sin(a)
+        row = last_row.copy()
+        dx = row[:, 0] - centre[0]
+        dy = row[:, 1] - centre[1]
+        row[:, 0] = centre[0] + c * dx - s_ * dy
+        row[:, 1] = centre[1] + s_ * dx + c * dy
+        kp[i] = row
     return kp
 
 
