@@ -10,6 +10,12 @@ export async function loadIndex() {
   return res.json();
 }
 
+export async function loadSources() {
+  const res = await fetch("data/sources.json");
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export function metricsOf(session) {
   const rows = [];
   for (const task of Object.values(session.tasks || {})) {

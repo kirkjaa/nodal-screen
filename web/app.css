@@ -69,3 +69,9 @@ svg{max-width:100%}
 .field{display:grid;gap:4px;min-width:0;max-width:100%}
 textarea{resize:vertical}
 .fhir{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0;direction:ltr;font-family:var(--font-mono);font-size:12px;max-width:100%;margin:0}
+.stack{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+.choice{display:flex;flex-wrap:wrap;gap:8px 16px;min-width:0;max-width:100%}
+fieldset.choice{min-inline-size:0;border:1px solid var(--border);border-radius:4px;padding:8px}
+.choice label{display:flex;gap:8px;align-items:flex-start;max-width:100%}
+.copy,.consent,.panel{overflow-wrap:anywhere;min-width:0;max-width:100%}
+ol.protocol{margin:8px 0 0;padding-inline-start:1.2rem}

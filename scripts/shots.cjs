@@ -8,6 +8,7 @@ const routes = [
   ["home", "#/"],
   ["enrol", "#/enrol"],
   ["capture", "#/capture"],
+  ["capture-child", "#/capture/child"],
   ["review", "#/review"],
   ["cohort", "#/cohort"],
   ["about", "#/about"],

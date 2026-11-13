@@ -42,7 +42,8 @@ function applyDocument() {
     link.href = href;
     link.textContent = t(key);
     const onReview = href === "#/review" && hash.startsWith("#/review/");
-    if (hash === href || onReview || (href === "#/" && (hash === "" || hash === "#"))) link.setAttribute("aria-current", "page");
+    const onCapture = href === "#/capture" && hash.startsWith("#/capture/");
+    if (hash === href || onReview || onCapture || (href === "#/" && (hash === "" || hash === "#"))) link.setAttribute("aria-current", "page");
     nav.append(link);
   }
   const button = document.querySelector("#lang");
@@ -62,6 +63,7 @@ function routeOf(hash) {
     "#": overview,
     "#/enrol": enrol,
     "#/capture": capture,
+    "#/capture/child": capture,
     "#/review": review,
     "#/cohort": cohort,
     "#/about": about,
