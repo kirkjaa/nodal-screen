@@ -105,7 +105,10 @@ function statRow(label, text, suppressed, plot, fraction, color) {
   const row = el("div", "stat");
   const top = el("div", "stat-top");
   const value = el("span", "stat-value", text);
-  if (suppressed) value.dataset.suppressed = "true";
+  if (suppressed) {
+    value.dataset.suppressed = "true";
+    value.dir = "ltr";
+  }
   top.append(el("span", "stat-label", label), value);
   row.append(top);
   if (plot) row.append(bar(fraction, color));
@@ -198,7 +201,9 @@ function split(t, titleKey, sites, buckets, key, values, mode) {
 
 function summaryCard(label, text, plot, fraction, color) {
   const panel = el("div", "panel");
-  panel.append(el("strong", "", text), el("span", "", label));
+  const strong = el("strong", "", text);
+  if (String(text).includes("<")) strong.dir = "ltr";
+  panel.append(strong, el("span", "", label));
   if (plot) panel.append(bar(fraction, color));
   return panel;
 }
