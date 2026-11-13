@@ -56,7 +56,12 @@ export async function render(root, ctx) {
       panel.className = "panel";
       const head = document.createElement("p");
       head.className = "k";
-      head.textContent = `${t("history.visit")} ${visit.visit_id || ""} · ${t("history.date")} ${visit.date || ""}`;
+      head.append(document.createTextNode(`${t("history.visit")} `));
+      const visitId = document.createElement("bdi");
+      visitId.textContent = visit.visit_id || "";
+      const date = document.createElement("bdi");
+      date.textContent = visit.date || "";
+      head.append(visitId, document.createTextNode(` · ${t("history.date")} `), date);
       panel.append(head);
       for (const [id, value] of Object.entries(visit.metrics || {})) {
         panel.append(metricLine(t, id, value));

@@ -41,8 +41,16 @@ export async function render(root, ctx) {
       block.className = "panel";
       const name = document.createElement("p");
       name.className = "k";
+      name.lang = "en";
+      name.dir = "ltr";
       name.textContent = id;
-      block.append(name, p(entry.citation || ""), p(entry.used_for || ""));
+      const citation = p(entry.citation || "");
+      citation.lang = "en";
+      citation.dir = "ltr";
+      const used = p(entry.used_for || "");
+      used.lang = "en";
+      used.dir = "ltr";
+      block.append(name, citation, used);
       parts.push(block);
     }
   }
