@@ -10,11 +10,11 @@ Cards marked *(card later)* are written by Claude after the cards before them ar
 | T02 | Cursor | Sources, norms and cut-offs transcribed with table refs; `screen/norms.py`, `screen/flags.py` and tests | none (parallel with T01) | ready |
 | T03 | Cursor | `screen/gaitsynth.py`: synthetic 3D walk, TUG, sit-to-stand, single-leg stance, with tests | none (parallel) | ready |
 | C02 | Claude | Offline run of NODAL's gait engine (adapter kept in the private NODAL repo); featured participants written to `data/samples/` | T02, T03 | |
-| T04 | Cursor | Cohort generator and programme dashboard with the small-cell rule | T02 | *(card later)* |
-| T05 | Cursor | Clinician review queue, pathway choice, FHIR R4 preview | T01 | *(card later)* |
-| T06 | Cursor | Enrolment and consent, capture protocol, history view, About page draft | T01 | *(card later)* |
+| T04 | Cursor | Cohort generator and programme dashboard with the small-cell rule | T02 | draft |
+| T05 | Cursor | Clinician review queue, pathway choice, FHIR R4 preview | T01 | draft |
+| T06 | Cursor | Enrolment and consent, capture protocol, history view, About page draft | T01 | draft |
 | C05 | Claude | Participant report page | T01, C02 | |
-| T07 | Cursor | Server API (stored AI texts, capped live AI behind a flag), Dockerfile, `deploy.ps1` modeled on `D:\cellpilot` | T01 | *(card later)* |
+| T07 | Cursor | Server API (stored AI texts, capped live AI behind a flag), Dockerfile, `deploy.ps1` modeled on CellPilot | T01 | draft |
 | C06 | Claude | Frontend polish pass over every screen, EN and AR, desktop and phone | T04 to T06 | |
 | C07 | Claude | AI texts for the featured participants (paid, Kirk approves) | C02 | |
 | C08 | Claude | Deploy to Cloud Run (paid, Kirk approves) | T07, C06 | |
