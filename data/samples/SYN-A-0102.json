@@ -1,0 +1,107 @@
+{
+  "schema": "nodal-screen/session@1",
+  "provenance": "synthetic",
+  "provenance_note": "Illustrative shell fixture. Hand-written fixture; replaced by pipeline output.",
+  "participant": {
+    "pid": "SYN-A-0102",
+    "display_name": "Adult 70",
+    "group": "adult",
+    "age_y": 70,
+    "age_band": "65-74",
+    "sex": "M",
+    "height_m": 1.72,
+    "segment": {
+      "site": "PHC-1",
+      "nationality_group": "Non-national"
+    },
+    "consent": {
+      "type": "adult",
+      "date": "2026-11-14",
+      "language": "en"
+    }
+  },
+  "visit": {
+    "visit_id": "V1",
+    "date": "2026-11-14",
+    "site": "PHC-1",
+    "kit": "M1, 4 cameras",
+    "operator": "OP-02"
+  },
+  "qc": {
+    "status": "insufficient",
+    "confidence": "low",
+    "strides_left": 2,
+    "strides_right": 1,
+    "keypoint_confidence": 0.42,
+    "calib_residual_px": 1.8,
+    "notes": [
+      "Too few strides to report."
+    ]
+  },
+  "tasks": {
+    "gait": {
+      "metrics": [
+        {
+          "id": "gait_speed",
+          "side": null,
+          "value": 0.9,
+          "unit": "m/s",
+          "ref": null,
+          "status": "insufficient"
+        },
+        {
+          "id": "cadence",
+          "side": null,
+          "value": 104,
+          "unit": "steps/min",
+          "ref": null,
+          "status": "insufficient"
+        }
+      ]
+    },
+    "tug": {
+      "metrics": [
+        {
+          "id": "tug_time",
+          "side": null,
+          "value": 13.2,
+          "unit": "s",
+          "ref": null,
+          "status": "insufficient"
+        }
+      ]
+    },
+    "sts5": {
+      "metrics": [
+        {
+          "id": "sts5_time",
+          "side": null,
+          "value": 14.0,
+          "unit": "s",
+          "ref": null,
+          "status": "insufficient"
+        }
+      ]
+    },
+    "sls": {
+      "metrics": [
+        {
+          "id": "sls_time",
+          "side": "left",
+          "value": 3.1,
+          "unit": "s",
+          "ref": null,
+          "status": "insufficient"
+        }
+      ]
+    }
+  },
+  "flags": [],
+  "suggested_pathway": {
+    "code": "RECAPTURE",
+    "reason_flag_ids": []
+  },
+  "review": null,
+  "history": [],
+  "ai_texts": {}
+}

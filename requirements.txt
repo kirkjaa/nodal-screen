@@ -3,3 +3,6 @@ opencv-python
 numpy
 scipy
 onnxruntime
+fastapi
+uvicorn
+jsonschema

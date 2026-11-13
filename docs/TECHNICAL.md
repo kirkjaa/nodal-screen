@@ -107,7 +107,7 @@ A single page in the NODAL Design System that renders entirely from a data file 
 
 ## 6. Limitations and known failure modes
 
-- Markerless accuracy for these tasks has not been validated against a marker-based laboratory system by NODAL. Published multi-camera systems report mean joint-angle errors of 3 to 4.5 degrees against marker-based capture (Uhlrich et al., 2023; Pagnon et al., 2022); the same accuracy for M1 and this pipeline is a target, not a result.
+- Markerless accuracy for these tasks is not yet validated against a marker-based laboratory system by NODAL. Published multi-camera systems report mean joint-angle errors of 3 to 4.5 degrees against marker-based capture (Uhlrich et al., 2023; Pagnon et al., 2022); the same accuracy for M1 and this pipeline is a target, not a result.
 - Inter-camera timing: frames can be up to one frame apart (33 ms at 30 fps); fast movements add error.
 - Occlusion, loose clothing, a hand behind the body or a worker turned away lower keypoint confidence; those frames are dropped, which can bias summaries toward easier postures.
 - Pose models are trained on public datasets and can be less accurate for some body sizes and clothing; validation across workers is part of the pilot plan.

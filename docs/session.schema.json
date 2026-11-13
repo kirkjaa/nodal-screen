@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nodal-screen/session@1",
+  "type": "object",
+  "required": ["schema", "provenance", "provenance_note", "participant", "visit", "qc", "tasks", "flags", "suggested_pathway"],
+  "properties": {
+    "schema": { "const": "nodal-screen/session@1" },
+    "provenance": { "enum": ["synthetic", "simulated-m1", "measured"] },
+    "provenance_note": { "type": "string", "minLength": 1 },
+    "participant": {
+      "type": "object",
+      "required": ["pid", "group", "age_y", "sex"],
+      "properties": {
+        "pid": { "type": "string" },
+        "group": { "enum": ["child", "adult"] },
+        "age_y": { "type": "number" },
+        "sex": { "enum": ["F", "M"] }
+      }
+    },
+    "visit": { "type": "object" },
+    "qc": {
+      "type": "object",
+      "required": ["status"],
+      "properties": { "status": { "enum": ["ok", "insufficient"] } }
+    },
+    "tasks": { "type": "object" },
+    "flags": { "type": "array" },
+    "suggested_pathway": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": { "type": "string" },
+        "reason_flag_ids": { "type": "array" }
+      }
+    },
+    "review": { "type": ["object", "null"] },
+    "history": { "type": "array" },
+    "ai_texts": { "type": "object" }
+  }
+}
