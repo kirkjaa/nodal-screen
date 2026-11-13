@@ -24,7 +24,7 @@
     "visit_id": "V1",
     "date": "2026-11-14",
     "site": "PHC-1",
-    "kit": "M1, 4 cameras",
+    "kit": "Synthetic take, no camera",
     "operator": "OP-02"
   },
   "qc": {
@@ -33,7 +33,7 @@
     "strides_left": 2,
     "strides_right": 1,
     "keypoint_confidence": 0.42,
-    "calib_residual_px": 1.8,
+    "calib_residual_px": null,
     "notes": [
       "Too few strides to report."
     ]

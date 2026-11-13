@@ -35,8 +35,12 @@ function referenceText(metric, t) {
   }
   const cutoff = metric.cutoff;
   if (cutoff && cutoff.threshold != null && cutoff.op) {
-    const unit = metric.unit ? ` ${metric.unit}` : "";
-    parts.push(`${cutoff.op} ${cutoff.threshold}${unit}, ${sourceName(t, cutoff.source_id)}`);
+    if (cutoff.source_id === "nodal-rule") {
+      parts.push(`${sourceName(t, "nodal-rule")} ${cutoff.op} ${cutoff.threshold} %`);
+    } else {
+      const unit = metric.unit ? ` ${metric.unit}` : "";
+      parts.push(`${cutoff.op} ${cutoff.threshold}${unit}, ${sourceName(t, cutoff.source_id)}`);
+    }
   }
   return parts.length ? parts.join("; ") : t("empty.ref");
 }

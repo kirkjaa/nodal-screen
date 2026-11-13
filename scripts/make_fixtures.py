@@ -66,7 +66,7 @@ RAW = [
             "visit_id": "V1",
             "date": "2026-11-14",
             "site": "PHC-1",
-            "kit": "M1, 4 cameras",
+            "kit": "Synthetic take, no camera",
             "operator": "OP-02",
         },
         {
@@ -75,7 +75,7 @@ RAW = [
             "strides_left": 6,
             "strides_right": 6,
             "keypoint_confidence": 0.91,
-            "calib_residual_px": 0.4,
+            "calib_residual_px": None,
             "notes": [],
         },
         {
@@ -115,7 +115,7 @@ RAW = [
             "visit_id": "V1",
             "date": "2026-11-14",
             "site": "PHC-1",
-            "kit": "M1, 4 cameras",
+            "kit": "Synthetic take, no camera",
             "operator": "OP-02",
         },
         {
@@ -124,7 +124,7 @@ RAW = [
             "strides_left": 2,
             "strides_right": 1,
             "keypoint_confidence": 0.42,
-            "calib_residual_px": 1.8,
+            "calib_residual_px": None,
             "notes": ["Too few strides to report."],
         },
         {
