@@ -24,15 +24,12 @@ Kirk opens a **new** Claude Code session (or `/clear`), sets `/model sonnet` unl
 
 ## 3. Merge, by Cursor
 
-After Claude's PASS, Kirk pastes into Cursor: **"Merge T0N."** Cursor, in `D:\nodal-screen` on `main`:
+After Claude's PASS, Kirk pastes into Cursor: **"Merge T0N."** Cursor runs:
 
 ```
-cd D:
-odal-screen-t03; git rebase --onto main 06e5b4a   # T03 only: it started from an older main
-cd D:
-odal-screen-t0N; git rebase main                    # every other task, in its own folder
-cd D:
-odal-screen; git merge --ff-only t0N-<slug>
+cd D:/nodal-screen-t03; git rebase --onto main 06e5b4a   # T03 only: it started from an older main
+cd D:/nodal-screen-t0N; git rebase main                    # every other task, in its own folder
+cd D:/nodal-screen; git merge --ff-only t0N-<slug>
 python -m pytest -q
 $env:NODAL_PUSH_OK = "1"; git push origin main  # a pre-push hook blocks every other push
 ```
