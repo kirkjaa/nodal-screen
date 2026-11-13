@@ -89,6 +89,18 @@ export function renderReplay(container, session, replay, ctx) {
   }
   const frames = replay.frames;
   const n = frames.length;
+  // Camera follow only: where a pelvis point is missing, use the nearest tracked
+  // pelvis position (interpolated between tracked frames). No point is drawn there.
+  const camX = frames.map(pelvisX);
+  const known = camX.map((v, i) => (v == null ? null : i)).filter((i) => i != null);
+  for (let i = 0; i < n; i += 1) {
+    if (camX[i] != null || !known.length) continue;
+    const before = known.filter((k) => k < i).pop();
+    const after = known.find((k) => k > i);
+    if (before == null) camX[i] = camX[after];
+    else if (after == null) camX[i] = camX[before];
+    else camX[i] = camX[before] + ((camX[after] - camX[before]) * (i - before)) / (after - before);
+  }
   const fps = replay.fps || 30;
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -107,7 +119,7 @@ export function renderReplay(container, session, replay, ctx) {
   const front = makeView(stage, t("replay.front"), t, "front", H);
 
   // Controls
-  const controls = html("div", { class: "replay-controls", dir: "ltr" });
+  const controls = html("div", { class: "replay-controls" });
   const play = html("button", { type: "button", class: "replay-button" });
   const speed = html("select", { "aria-label": t("replay.speed") });
   for (const s of SPEEDS) {
@@ -249,11 +261,12 @@ export function renderReplay(container, session, replay, ctx) {
   function show(i) {
     f = Math.max(0, Math.min(n - 1, i));
     const frame = frames[f];
-    const px = pelvisX(frame) ?? 0;
+    const px = camX[f] ?? 0;
     drawView(side, frame, px);
     drawView(front, frame, px);
     slider.value = String(f);
-    readout.textContent = `${t("replay.frame")} ${f + 1} / ${n} · ${(f / fps).toFixed(2)} s`;
+    const nums = html("bdi", { dir: "ltr" }, `${f + 1} / ${n} · ${(f / fps).toFixed(2)} s`);
+    readout.replaceChildren(document.createTextNode(`${t("replay.frame")} `), nums);
     const gaps = frame.filter((p) => !p).length;
     const notes = eventAt(f);
     if (gaps) notes.push(t("replay.gap").replace("{n}", String(gaps)));
