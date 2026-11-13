@@ -1,4 +1,4 @@
-# NODAL Screen data contract (v1.1, 13 Nov 2026: metric `cutoff` field, status order, child and sit-to-stand sources)
+# NODAL Screen data contract (v1.2, 13 Nov 2026: v1.1 plus the fields the measured sample sessions fill: consent type, kit, QC, curves, metric definitions)
 
 Owner: Claude Code. Cursor agents read it and build against it; they propose changes in their done note and never edit this file.
 
@@ -56,7 +56,11 @@ Every session and the cohort carry `provenance`, shown as a badge on every scree
 
 - `group` is `child` (3 to 12) or `adult` (18+). A task that was not part of the visit is absent, not empty.
 - `qc.status` is `ok` or `insufficient`. When it is `insufficient`, `flags` is empty, every metric's status is `insufficient`, `suggested_pathway.code` is `RECAPTURE`, and the screen says why from `qc.notes`.
-- `curves` arrays have 101 points (0 to 100 % of the gait cycle), degrees. Curve names: `hip_flexion`, `knee_flexion`, `ankle_dorsiflexion`, `hip_adduction`.
+- `consent.type` is `guardian+assent` for a child and `adult` for an adult.
+- `visit.kit` is the capture kit; a synthetic session says `Synthetic take, no camera`.
+- `qc.keypoint_confidence` is the mean tracking confidence of the shoulders, hips, knees and ankles over the measured walk. `qc.calib_residual_px` is `null` when no camera was involved (every synthetic session).
+- `curves` arrays have 101 points (0 to 100 % of the gait cycle, heel strike to heel strike), degrees, the mean over the person's strides. Curve names: `hip_flexion`, `knee_flexion`; `ankle_dorsiflexion` and `hip_adduction` are absent in v1 (not reliable from 17 body points). `norm_mean` and `norm_sd` are empty arrays when no source for a reference band is loaded, which is every curve in v1; the screen then draws the person's curves without a band.
+- Gait metrics are measured over the middle 10 m of the walk (2 m to 12 m), as in a 10 m walk test.
 - `review` is filled when a clinician acts: `{"clinician": "CLN-01", "decision": "confirm" | "dismiss" | "recapture", "pathway": "<code>", "note": "", "at": "<ISO time>"}`. In the hosted prototype, review actions are kept in the browser only and the screen says so.
 - `ai_texts` holds texts written by a language model from the metrics and the clinician's decision, never from video: `{"family_letter": {"en": "", "ar": "", "model": "", "generated_at": "", "status": "stored-sample"}, "clinician_brief": {...}}`. The screen labels them "Drafted by AI from the measurements. A clinician approves before anything is sent."
 
@@ -104,6 +108,14 @@ Every session and the cohort carry `provenance`, shown as a badge on every scree
 | `sls_time` | sls | s | L/R | low | norm `springer2007` |
 | `tandem_steps` | tandem | steps of 10 | none | low | none in v1 (shown, not flagged) |
 | `hop_count` | hop | hops | L/R | low | none in v1 (shown, not flagged) |
+
+Definitions where the id alone is ambiguous:
+
+- `stride_length_h`: children only.
+- `step_time_cv`: coefficient of variation of step time, computed per side, then the mean of the two sides, so a steady left-right difference counts as asymmetry, not variability.
+- `knee_rom`: range of knee flexion over the gait cycle, mean over the side's strides.
+- `heel_first_share`: share of that side's foot contacts where the ankle reaches the floor no later than the forefoot.
+- `tug_time`, `sts5_time`, `sls_time` in a synthetic session are the timed task windows of the synthetic clips.
 
 ## 4. Flag rules (`screen/flags.py`)
 
