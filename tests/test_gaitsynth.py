@@ -83,6 +83,8 @@ def test_bones_stay_fixed_without_noise():
 
 
 def test_stance_foot_does_not_slide():
+    # The foot rolls over the heel and onto the toe, so only the point that is on
+    # the floor must stay put: no point slides while it is within 3 mm of the floor.
     out = walk10(clean())
     kp = out["kp"]
     for side, heel, toe in (("left", L_HEEL, L_BTOE), ("right", R_HEEL, R_BTOE)):
@@ -91,12 +93,13 @@ def test_stance_foot_does_not_slide():
             if "hs" not in event or "to" not in event:
                 continue
             hs, to = event["hs"], event["to"]
-            if to <= hs:
-                continue
             for idx in (heel, toe, small):
-                xy = kp[hs:to, idx, :2]
+                down = np.flatnonzero(kp[hs:to, idx, 2] < 3.0)
+                if down.size < 2:
+                    continue
+                xy = kp[hs + down, idx, :2]
                 drift = np.linalg.norm(xy - xy[0], axis=1).max()
-                assert drift < 5.0, (side, idx, drift)
+                assert drift < 5.0, (side, idx, hs, drift)
 
 
 def test_speed_and_step_length():
@@ -249,16 +252,26 @@ def _peaks(kp):
     return left, right
 
 
+def _steady_peaks(out):
+    kp = out["kp"]
+    hip_x = 0.5 * (kp[:, L_HIP, 0] + kp[:, R_HIP, 0])
+    zone = (hip_x >= 2000.0) & (hip_x <= 12000.0)
+    left = float(np.max(_knee_flex_deg(kp[zone, L_HIP], kp[zone, L_KN], kp[zone, L_AN])))
+    right = float(np.max(_knee_flex_deg(kp[zone, R_HIP], kp[zone, R_KN], kp[zone, R_AN])))
+    return left, right
+
+
 def test_knee_peaks_match_the_angle_curves():
+    # Measured over the steady 10 m, the part a 10 m walk test times.
     typical = walk10(_person_from_spec(PRESETS["adult-typical-45"]))
     child = walk10(_person_from_spec(PRESETS["child-typical-6"]))
     for out in (typical, child):
-        left, right = _peaks(out["kp"])
-        assert 55.0 <= left <= 65.0
-        assert 55.0 <= right <= 65.0
+        left, right = _steady_peaks(out)
+        assert 55.0 <= left <= 65.0, left
+        assert 55.0 <= right <= 65.0, right
     asym = walk10(_person_from_spec(PRESETS["adult-asym-64"]))
-    left, right = _peaks(asym["kp"])
-    assert abs((left - right) - 20.0) <= 3.0
+    left, right = _steady_peaks(asym)
+    assert abs((left - right) - 20.0) <= 3.0, (left, right)
 
 
 def test_heel_lands_and_the_toe_clears():
@@ -270,10 +283,11 @@ def test_heel_lands_and_the_toe_clears():
             strikes = [event["hs"] for event in events if "hs" in event]
             for event in events:
                 hs = event.get("hs")
-                if hs is None or hs < 1:
+                if hs is None or hs < 1 or event["toe_walk"]:
                     continue
-                err = float(np.linalg.norm(kp[hs - 1, heel] - kp[hs, heel]))
+                err = float(np.linalg.norm(kp[hs, heel, :2] - np.array(event["heel_mm"])))
                 assert err < 5.0, (name, side, hs, err)
+                assert abs(float(kp[hs, heel, 2])) < 1.0, (name, side, hs)
             for event in events:
                 to = event.get("to")
                 if to is None:
@@ -375,7 +389,8 @@ def test_stance_and_double_support_fractions():
             if down("left", frame) and down("right", frame):
                 both += 1
         assert total
-        assert 0.18 <= both / total <= 0.24
+        low, high = (0.14, 0.20) if name.startswith("child") else (0.18, 0.24)
+        assert low <= both / total <= high, (name, both / total)
 
 
 def test_step_width_and_hip_spacing():
@@ -396,3 +411,89 @@ def test_step_width_and_hip_spacing():
         for width in widths[:-1]:
             assert 0.05 * height <= width <= 0.08 * height
 
+
+
+
+CONTINUITY_PRESETS = ("adult-typical-45", "child-typical-6", "adult-asym-64", "child-toewalk-7")
+FOOT = (L_AN, R_AN, L_HEEL, R_HEEL, L_BTOE, R_BTOE, L_BTOE + 1, R_BTOE + 1)
+
+
+def _swings(out, side):
+    events = out["truth"]["events"][side]
+    strikes = [event["hs"] for event in events if "hs" in event]
+    for event in events:
+        to = event.get("to")
+        nxt = [hs for hs in strikes if to is not None and hs > to]
+        if to is not None and nxt:
+            yield to, nxt[0]
+
+
+def test_no_jumps():
+    # Fix 2: nothing teleports. Every joint moves at most 4x walking speed per
+    # frame, and foot points change height by at most 25 mm a frame.
+    for name in CONTINUITY_PRESETS:
+        spec = PRESETS[name]
+        out = walk10(_person_from_spec(spec))
+        kp = out["kp"]
+        limit = 4.0 * spec["speed_m_s"] * 1000.0 / FPS
+        step = np.linalg.norm(np.diff(kp, axis=0), axis=2)
+        assert float(step.max()) <= limit, (name, float(step.max()), np.unravel_index(step.argmax(), step.shape))
+        dz = np.abs(np.diff(kp[:, FOOT, 2], axis=0))
+        assert float(dz.max()) <= 25.0, (name, float(dz.max()))
+
+
+def test_swing_ankle_moves_forward_only():
+    for name in CONTINUITY_PRESETS:
+        out = walk10(_person_from_spec(PRESETS[name]))
+        kp = out["kp"]
+        for side, ankle in (("left", L_AN), ("right", R_AN)):
+            for to, hs in _swings(out, side):
+                x = kp[to - 1:hs + 1, ankle, 0]
+                assert float(np.diff(x).min()) >= -1.0, (name, side, to)
+
+
+def test_one_speed_peak_per_swing():
+    for name in CONTINUITY_PRESETS:
+        spec = PRESETS[name]
+        out = walk10(_person_from_spec(spec))
+        kp = out["kp"]
+        for side, ankle in (("left", L_AN), ("right", R_AN)):
+            for to, hs in _swings(out, side):
+                v = np.linalg.norm(np.diff(kp[to - 1:hs + 1, ankle, :2], axis=0), axis=1) * FPS / 1000.0
+                if v.size < 5:
+                    continue
+                peak = float(v.max())
+                assert peak <= 3.5 * spec["speed_m_s"], (name, side, to, peak)
+                tops = [i for i in range(1, v.size - 1) if v[i] >= v[i - 1] and v[i] > v[i + 1] and v[i] > 0.5 * peak]
+                assert len(tops) == 1, (name, side, to, tops)
+
+
+def _detect(kp, heel, toe):
+    """Plain velocity-threshold events on the slower of heel and toe."""
+    speed = np.minimum(np.linalg.norm(np.gradient(kp[:, heel, :2], axis=0), axis=1),
+                       np.linalg.norm(np.gradient(kp[:, toe, :2], axis=0), axis=1))
+    peak = float(np.percentile(speed, 98))
+    contact, hs, to = speed[0] < 0.1 * peak, [], []
+    for i in range(1, len(speed)):
+        if contact and speed[i] > 0.2 * peak:
+            contact = False
+            to.append(i)
+        elif not contact and speed[i] < 0.1 * peak:
+            contact = True
+            hs.append(i)
+    return hs, to
+
+
+def test_events_are_recoverable():
+    for name in CONTINUITY_PRESETS:
+        out = walk10(_person_from_spec(PRESETS[name]))
+        kp = out["kp"]
+        hip_x = 0.5 * (kp[:, L_HIP, 0] + kp[:, R_HIP, 0])
+        for side, heel, toe in (("left", L_HEEL, L_BTOE), ("right", R_HEEL, R_BTOE)):
+            hs_found, to_found = _detect(kp, heel, toe)
+            for event in out["truth"]["events"][side]:
+                for key, found in (("hs", hs_found), ("to", to_found)):
+                    frame = event.get(key)
+                    if frame is None or not (2000.0 <= hip_x[frame] <= 12000.0):
+                        continue
+                    assert found and nearest(frame, found) <= 2, (name, side, key, frame)

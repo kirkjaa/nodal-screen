@@ -386,7 +386,14 @@ def _schedule(person: Person, distance_m: float, zone: bool):
     side = "L"
     for i in range(count):
         slow = zone and distance_m >= 10 and (x < 2.0 or x >= distance_m - 2.0)
-        scale = 1.6 if slow else 1.0
+        # Speed up over the first 2 m and slow down over the last 2 m gradually
+        # (step time 1.6x at the ends, 1.0x in the timing zone).
+        if slow and x < 2.0:
+            scale = 1.0 + 0.6 * (1.0 - x / 2.0)
+        elif slow:
+            scale = 1.0 + 0.6 * min((x - (distance_m - 2.0)) / 2.0, 1.0)
+        else:
+            scale = 1.0
         duration = times[side] * scale * float(factors[i])
         steps.append({
             "side": side,
@@ -415,6 +422,10 @@ def _schedule(person: Person, distance_m: float, zone: bool):
     stride_t = times["L"] + times["R"]
     speed = person.speed_m_s
     stance_frac = float(np.clip(0.605 + 0.06 * (1.25 - speed), 0.58, 0.62))
+    if person.age_y < 13:
+        # Rough demo value: children spend less of the cycle in double support
+        # (about 16 to 18 % in Voss 2020, Table 2), so stance is shorter.
+        stance_frac = 0.585
     for i, step in enumerate(steps):
         nxt = next((steps[j] for j in range(i + 1, len(steps)) if steps[j]["side"] == step["side"]), None)
         if nxt is None:
@@ -534,214 +545,180 @@ def _pitch_for(step, frame: int, body: Body, swing: bool, person: Person, side: 
     return pitch, reduced
 
 
-def _rod(v, axis, ang: float):
-    c, s = math.cos(ang), math.sin(ang)
-    return v * c + np.cross(axis, v) * s + axis * float(np.dot(axis, v)) * (1.0 - c)
+# ---------------------------------------------------------------------------
+# Walking
+#
+# One planned motion, no corrections afterwards:
+#   * the pelvis moves forward smoothly through the footstep plan; its height is
+#     planned so it is lowest at each heel strike (landing leg nearly straight)
+#     and highest at mid-stance;
+#   * a stance foot rolls over the heel, lies flat, then rises on the toe;
+#   * a swing ankle follows a planned forward path. A knee angle k fixes the
+#     hip-to-ankle distance R(k), so the ankle sits on the circle of radius R(k)
+#     around the hip; the knee follows its own curve (stance value at toe-off,
+#     peak at 30 % of the swing, near straight at landing). The swing therefore
+#     ends exactly on the next footfall.
+# Angles and shares below are rough demo values chosen to look like ordinary
+# walking. They are not transcribed norms.
+
+PITCH_LAND = math.radians(-14.0)   # toes up at heel strike
+PITCH_OFF = math.radians(22.0)     # foot pitch at toe-off (heel raised); less on a stiff-knee side
+TOE_WALK_RISE = 40.0               # heel height (mm) held through a toe-walking stance
+KNEE_LAND = 6.0                    # knee flexion at heel strike, deg
+KNEE_MID = 10.0                    # stance knee used for the mid-stance pelvis height, deg
+KNEE_PEAK = 60.0                   # swing peak, deg
+PEAK_AT = 0.30                     # share of the swing at which the knee peaks
+FOOT_FLAT = 0.17                   # share of stance spent rolling over the heel
+HEEL_OFF = 0.55                    # share of stance at which the heel starts to rise
+CLEARANCE = 12.0                   # mm, lowest foot point above the floor in mid-swing
+HS_LAG = 0.60                      # pelvis behind the landing ankle at heel strike, share of the step
+SWING_LEVEL_AT = 0.60             # share of the swing by which the foot reaches its landing pitch
 
 
-def _foot_from_ankle(ankle, yaw: float, pitch: float, side: str, body: Body):
-    """Foot with the same bone lengths as foot_points, ankle kept."""
-    fwd, _lat = _fwd_lat(yaw)
-    back = body.foot - body.heel_to_ankle
-    x2, z2 = _pitch_xz(back, body.ankle_h, pitch)
-    toe = np.asarray(ankle, float) - fwd * x2 - np.array([0.0, 0.0, z2])
-    return foot_points(toe, yaw, pitch, side, body)
+def _reach(body: Body, knee_deg: float) -> float:
+    """Hip-to-ankle distance for a knee flexion angle."""
+    k = math.radians(knee_deg)
+    return math.sqrt(body.thigh ** 2 + body.shank ** 2 + 2.0 * body.thigh * body.shank * math.cos(k))
 
 
-def _swing_chain(hip, yaw, side, hip_flex_deg, knee_flex_deg, abduct_deg, foot_pitch, body: Body):
-    """Knee and foot from hip and knee angles. Lengths come from `body`."""
+def _knee_for(body: Body, dist: float) -> float:
+    c = (dist * dist - body.thigh ** 2 - body.shank ** 2) / (2.0 * body.thigh * body.shank)
+    return math.degrees(math.acos(max(-1.0, min(1.0, c))))
+
+
+def _ease(w: float) -> float:
+    w = min(max(w, 0.0), 1.0)
+    return 0.5 - 0.5 * math.cos(math.pi * w)
+
+
+def _hermite(p0: float, m0: float, p1: float, m1: float, w: float) -> float:
+    w2, w3 = w * w, w * w * w
+    return (2 * w3 - 3 * w2 + 1) * p0 + (w3 - 2 * w2 + w) * m0 + (-2 * w3 + 3 * w2) * p1 + (w3 - w2) * m1
+
+
+def _pchip(xs, ys):
+    """Monotone cubic through (xs, ys); holds the end values outside the range."""
+    xs = np.asarray(xs, float)
+    ys = np.asarray(ys, float)
+    n = len(xs)
+    if n == 1:
+        return lambda x: np.full_like(np.asarray(x, float), ys[0])
+    h = np.diff(xs)
+    d = np.diff(ys) / h
+    m = np.zeros(n)
+    m[0], m[-1] = d[0], d[-1]
+    for i in range(1, n - 1):
+        if d[i - 1] * d[i] <= 0:
+            m[i] = 0.0
+        else:
+            w1, w2 = 2 * h[i] + h[i - 1], h[i] + 2 * h[i - 1]
+            m[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i])
+
+    def f(x):
+        x = np.clip(np.asarray(x, float), xs[0], xs[-1])
+        i = np.clip(np.searchsorted(xs, x, side="right") - 1, 0, n - 2)
+        t = (x - xs[i]) / h[i]
+        t2, t3 = t * t, t * t * t
+        return ((2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * h[i] * m[i]
+                + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h[i] * m[i + 1])
+    return f
+
+
+_GRID = np.linspace(0.0, 1.0, 2001)
+_PROG = np.concatenate([[0.0], np.cumsum(np.sqrt(np.sin(np.pi * 0.5 * (_GRID[1:] + _GRID[:-1]))) * np.diff(_GRID))])
+_PROG /= _PROG[-1]
+
+
+def _progress(s: float) -> float:
+    """Forward progress of the swing ankle: speed ~ sqrt(sin(pi*s)), steep at both ends."""
+    return float(np.interp(s, _GRID, _PROG))
+
+
+def _toe_from_ankle(ankle, yaw: float, pitch: float, body: Body):
+    fwd, _ = _fwd_lat(yaw)
+    x2, z2 = _pitch_xz(body.foot - body.heel_to_ankle, body.ankle_h, pitch)
+    return np.asarray(ankle, float) - fwd * x2 - np.array([0.0, 0.0, z2])
+
+
+def _toe_from_heel(heel, yaw: float, pitch: float, body: Body):
+    fwd, _ = _fwd_lat(yaw)
+    return np.asarray(heel, float) + fwd * (body.foot * math.cos(pitch)) - np.array([0.0, 0.0, body.foot * math.sin(pitch)])
+
+
+def _stance_foot(step, u: float, yaw: float, origin, body: Body):
+    """Toe and pitch of a planted foot at stance progress u (0 heel strike, 1 last stance frame)."""
+    heel0 = _heel_pose(step, yaw, origin, body) - _fwd_lat(yaw)[0] * body.foot   # planned heel on the floor
+    toe0 = heel0 + _fwd_lat(yaw)[0] * body.foot
+    off = step.get("pitch_off", PITCH_OFF)
+    if step["toe_walk"]:
+        tw = math.asin(TOE_WALK_RISE / body.foot)
+        if u <= HEEL_OFF:
+            return toe0, tw
+        w = (u - HEEL_OFF) / (1.0 - HEEL_OFF)
+        return toe0, tw + (max(off, tw) - tw) * w * w
+    if u < FOOT_FLAT:
+        pitch = PITCH_LAND * (1.0 - _ease(u / FOOT_FLAT))
+        return _toe_from_heel(heel0, yaw, pitch, body), pitch
+    if u <= HEEL_OFF:
+        return toe0, 0.0
+    w = (u - HEEL_OFF) / (1.0 - HEEL_OFF)
+    return toe0, off * w * w
+
+
+
+def _assemble(pelvis, yaw, body: Body, legs, swings, bends):
+    """Build the 23-point row from the pelvis and each leg's (ankle, toe, pitch)."""
     fwd, lat = _fwd_lat(yaw)
-    up = np.array([0.0, 0.0, 1.0])
-    outward = lat if side == "L" else -lat
-    axis = lat / max(float(np.linalg.norm(lat)), 1e-8)
-    hf = math.radians(hip_flex_deg)
-    kf = math.radians(knee_flex_deg)
-    ab = math.radians(abduct_deg)
-    thigh = -up * math.cos(hf) + fwd * math.sin(hf)
-    thigh = thigh * math.cos(ab) + outward * math.sin(ab)
-    thigh = thigh / max(float(np.linalg.norm(thigh)), 1e-8)
-    knee = np.asarray(hip, float) + thigh * body.thigh
-    # Flex about an axis perpendicular to the thigh so the bend equals kf
-    # even when the thigh is hiked out to the side.
-    flex_axis = axis - thigh * float(np.dot(axis, thigh))
-    n_axis = float(np.linalg.norm(flex_axis))
-    if n_axis < 1e-8:
-        flex_axis = axis
-    else:
-        flex_axis = flex_axis / n_axis
-    shank = _rod(thigh, flex_axis, kf)
-    shank = shank / max(float(np.linalg.norm(shank)), 1e-8)
-    ankle = knee + shank * body.shank
-    heel, ankle, big, small = _foot_from_ankle(ankle, yaw, foot_pitch, side, body)
-    return knee, ankle, heel, big, small
-
-
-def _swing_curve(g: float, stance_frac: float, knee_peak: float):
-    """Knee peaks near 70% of the stride. Slopes stay non-zero at both ends of swing.
-
-    A smoothstep would park the foot, and a speed threshold would then call
-    contact early. The thigh is still flexing at heel strike, near 27 degrees.
-    """
-    stance_frac = min(max(stance_frac, 0.4), 0.68)
-    span = max(1.0 - stance_frac, 1e-3)
-    u = min(max((g - stance_frac) / span, 0.0), 1.0)
-    u_peak = min(max((0.70 - stance_frac) / span, 0.18), 0.55)
-    if u <= u_peak:
-        t = u / u_peak
-        knee = 40.0 + (knee_peak - 40.0) * math.sin(0.5 * math.pi * t)
-    else:
-        t = (u - u_peak) / (1.0 - u_peak)
-        knee = knee_peak + (12.0 - knee_peak) * (t ** 0.8)
-    hip = -12.0 + 39.0 * (u ** 0.75)
-    abduct = math.sin(math.pi * u)
-    return knee, hip, abduct, u
-
-
-def _translate_upper(row, delta):
-    """Move the trunk, head, arms and both hips together. Feet stay put."""
-    row[:13] = row[:13] + np.asarray(delta, float)
-
-
-def _plant_knee(row, side: str, body: Body, yaw: float) -> bool:
-    hip_i = L_HIP if side == "L" else R_HIP
-    an_i = L_AN if side == "L" else R_AN
-    kn_i = L_KN if side == "L" else R_KN
-    fwd, _lat = _fwd_lat(yaw)
-    try:
-        row[kn_i] = knee_position(row[hip_i], row[an_i], body, fwd)
-    except RuntimeError:
-        return False
-    return True
-
-
-def _try_shift(row, delta, stance_sides, body: Body, yaw: float) -> bool:
-    saved_upper = row[:13].copy()
-    saved_knees = row[[L_KN, R_KN]].copy()
-    _translate_upper(row, delta)
-    if all(_plant_knee(row, side, body, yaw) for side in stance_sides):
-        return True
-    row[:13] = saved_upper
-    row[L_KN] = saved_knees[0]
-    row[R_KN] = saved_knees[1]
-    return False
-
-
-def _write_leg(row, side, knee, ankle, heel, big, small):
-    kn_i = L_KN if side == "L" else R_KN
-    an_i = L_AN if side == "L" else R_AN
-    he_i = L_HEEL if side == "L" else R_HEEL
-    bt_i = L_BTOE if side == "L" else R_BTOE
-    st_i = L_STOE if side == "L" else R_STOE
-    row[kn_i] = knee
-    row[an_i] = ankle
-    row[he_i] = heel
-    row[bt_i] = big
-    row[st_i] = small
-
-
-def _point_flex(hip, knee, ankle) -> float:
-    v1 = np.asarray(hip, float) - np.asarray(knee, float)
-    v2 = np.asarray(ankle, float) - np.asarray(knee, float)
-    denom = float(np.linalg.norm(v1) * np.linalg.norm(v2))
-    if denom < 1e-8:
-        return 0.0
-    c = float(np.dot(v1, v2) / denom)
-    return 180.0 - math.degrees(math.acos(min(1.0, max(-1.0, c))))
-
-
-def _knee_reach(body: Body, knee_flex_deg: float) -> float:
-    kf = math.radians(max(knee_flex_deg, 0.0))
-    return math.sqrt(body.thigh ** 2 + body.shank ** 2 + 2.0 * body.thigh * body.shank * math.cos(kf))
-
-
-def _ankle_for_heel(planned, yaw, pitch, side, body: Body):
-    """Ankle that puts the heel on `planned` at this foot pitch."""
-    heel0, ankle0, _big, _small = _foot_from_ankle(np.zeros(3), yaw, pitch, side, body)
-    return np.asarray(planned, float) - (heel0 - ankle0)
-
-
-def _approach(row, hip_i, target, distance, stance_sides, body: Body, yaw: float) -> bool:
-    """Move the trunk so this hip is about `distance` mm from `target`."""
-    for _ in range(24):
-        hip = row[hip_i]
-        gap = np.asarray(target, float) - hip
-        dist = float(np.linalg.norm(gap))
-        if dist <= distance + 1.0:
-            return True
-        step = min(12.0, dist - distance)
-        delta = gap / dist * step
-        if _try_shift(row, delta, stance_sides, body, yaw):
-            continue
-        if not _try_shift(row, delta * 0.35, stance_sides, body, yaw):
-            return False
-    return False
-
-
-def _aim_foot(hip, planned, knee_flex, pitch, yaw, side, body: Body):
-    """Hip and knee angles whose heel lands nearest `planned`.
-
-    Prefer about 27 degrees of hip flexion when several poses land inside 5 mm.
-    """
-    best = None
-
-    def consider(hf, ab):
-        nonlocal best
-        knee, ankle, heel, big, small = _swing_chain(hip, yaw, side, hf, knee_flex, ab, pitch, body)
-        err = float(np.linalg.norm(heel - planned))
-        if float(heel[2]) < -1.0:
-            err += 500.0
-        score = err + 0.3 * abs(hf - 27.0) + 0.05 * abs(ab) if err < 5.0 else 100.0 + err
-        if best is None or score < best[0]:
-            best = (score, err, hf, ab, knee, ankle, heel, big, small)
-
-    for hf in range(0, 56, 4):
-        for ab in range(-12, 13, 6):
-            consider(float(hf), float(ab))
-    _score, _err, hf0, ab0, *_rest = best
-    for hf in np.linspace(hf0 - 2.0, hf0 + 2.0, 5):
-        for ab in np.linspace(ab0 - 3.0, ab0 + 3.0, 5):
-            consider(float(hf), float(ab))
-    return best[1:]
-
-
-def _lift_double_support(row, body: Body, yaw: float, person: Person | None = None):
-    """Stand the pelvis up when both feet are down and a knee has folded."""
-    cap_l = cap_r = 55.0
-    if person is not None and person.reduced_knee_flexion_deg > 0:
-        if person.reduced_knee_side == "L":
-            cap_l = 36.0
-        elif person.reduced_knee_side == "R":
-            cap_r = 36.0
-    for _ in range(8):
-        flex_l = _point_flex(row[L_HIP], row[L_KN], row[L_AN])
-        flex_r = _point_flex(row[R_HIP], row[R_KN], row[R_AN])
-        if flex_l <= cap_l and flex_r <= cap_r:
-            return
-        pull = 0.5 * (
-            (row[L_AN, :2] - row[L_HIP, :2]) + (row[R_AN, :2] - row[R_HIP, :2])
-        )
-        if float(np.linalg.norm(pull)) > 3.0:
-            if not _try_shift(row, np.array([pull[0] * 0.5, pull[1] * 0.5, 0.0]), ("L", "R"), body, yaw):
-                pull = np.zeros(2)
-        z_cap = 1.0e9
-        for hip_i, an_i in ((L_HIP, L_AN), (R_HIP, R_AN)):
-            horiz = math.hypot(float(row[hip_i, 0] - row[an_i, 0]), float(row[hip_i, 1] - row[an_i, 1]))
-            max_h = body.leg - 4.0
-            if horiz >= max_h:
-                return
-            room = math.sqrt(max_h * max_h - horiz * horiz)
-            z_cap = min(z_cap, float(row[an_i, 2]) + room)
-        lift = z_cap - float(row[L_HIP, 2]) - 2.0
-        if lift > 2.0:
-            if not _try_shift(row, np.array([0.0, 0.0, lift]), ("L", "R"), body, yaw):
-                return
-        elif float(np.linalg.norm(pull)) <= 3.0:
-            return
+    hip_l, hip_r = _hips(pelvis, yaw, body)
+    feet = {}
+    for side, hip in (("L", hip_l), ("R", hip_r)):
+        toe, pitch = legs[side]
+        heel, ank, big, small = foot_points(toe, yaw, pitch, side, body)
+        knee = knee_position(hip, ank, body, fwd)
+        feet[side] = (knee, ank, heel, big, small)
+    mid = (hip_l + hip_r) / 2.0
+    trunk_top = mid + np.array([0.0, 0.0, body.trunk]) + fwd * (0.04 * body.trunk)
+    sh_l = trunk_top + lat * (body.shoulder_w / 2.0)
+    sh_r = trunk_top - lat * (body.shoulder_w / 2.0)
+    el_l, wr_l = _arm(sh_l, yaw, swings[0], bends[0], body, "L")
+    el_r, wr_r = _arm(sh_r, yaw, swings[1], bends[1], body, "R")
+    nose, eye_l, eye_r, ear_l, ear_r = _head(trunk_top, yaw, body)
+    row = np.zeros((23, 3))
+    kl, al, hl, bl, sl = feet["L"]
+    kr, ar, hr, br, sr = feet["R"]
+    for idx, point in (
+        (NOSE, nose), (L_EYE, eye_l), (R_EYE, eye_r), (L_EAR, ear_l), (R_EAR, ear_r),
+        (L_SH, sh_l), (R_SH, sh_r), (L_EL, el_l), (R_EL, el_r), (L_WR, wr_l), (R_WR, wr_r),
+        (L_HIP, hip_l), (R_HIP, hip_r), (L_KN, kl), (R_KN, kr), (L_AN, al), (R_AN, ar),
+        (L_BTOE, bl), (L_STOE, sl), (L_HEEL, hl), (R_BTOE, br), (R_STOE, sr), (R_HEEL, hr),
+    ):
+        row[idx] = point
+    return row
 
 
 def _render_gait(person: Person, distance_m: float, zone: bool, yaw: float, origin, n_frames: int | None, duration_s: float | None, task: str):
     body = Body.from_height(person.height_m)
     steps, lengths, times, stride_t = _schedule(person, distance_m, zone)
+    real = [st for st in steps if not st.get("phantom")]
+    if len(real) >= 3:
+        # Closing step: the last foot lands beside the other one, so the walk ends standing.
+        real[-1]["along_m"] = real[-2]["along_m"]
+        real[-1]["length_m"] = 0.0
+    if person.reduced_knee_flexion_deg > 0:
+        for st in steps:
+            if st["side"] == person.reduced_knee_side:
+                # A stiff knee also bends less before toe-off: less heel rise on that side.
+                st["pitch_off"] = PITCH_OFF - math.radians(0.4 * person.reduced_knee_flexion_deg)
+    ph = steps[0] if steps and steps[0].get("phantom") else None
+    if ph is not None and len(real) >= 2:
+        # The foot already down at the start belongs to a step as slow as the first one.
+        same = next((st for st in real if st["side"] == ph["side"]), None)
+        first = real[0]
+        if same is not None and first.get("next_hs") is not None:
+            frac = (first["to_time"] - first["hs_time"]) / (first["next_hs"] - first["hs_time"])
+            ph["time_s"] = first["time_s"]
+            ph["hs_time"] = -first["time_s"]
+            ph["to_time"] = ph["hs_time"] + frac * (same["hs_time"] - ph["hs_time"])
     if duration_s is not None:
         _scale_schedule(steps, duration_s)
     finite_to = [step["to_time"] for step in steps if step["to_time"] < step["hs_time"] + 1000]
@@ -749,275 +726,202 @@ def _render_gait(person: Person, distance_m: float, zone: bool, yaw: float, orig
     if n_frames is None:
         n_frames = int(round(end_t * FPS)) + 1
     _frames(steps, n_frames)
-    keys = _pelvis_keys(steps, body, yaw, origin)
-    forward, _ = _fwd_lat(yaw)
-    kp = np.zeros((n_frames, 23, 3))
-    stride_frames = max(int(round(stride_t * FPS)), 4)
+    origin = np.asarray(origin, float)
+    fwd, lat = _fwd_lat(yaw)
+    up = np.array([0.0, 0.0, 1.0])
+    along = lambda p: float(np.dot(np.asarray(p, float) - origin, fwd))
+    across = lambda p: float(np.dot(np.asarray(p, float) - origin, lat))
 
-    def covering(frame, side):
-        chosen = None
-        for step in steps:
-            if step["side"] != side:
-                continue
-            nxt = step["next_hs_frame"]
-            if nxt is None or frame < nxt:
-                if step["hs"] <= frame or chosen is None:
-                    chosen = step
-                    if step["hs"] <= frame and (nxt is None or frame < nxt):
-                        return step
-        return chosen
+    by_side = {s: sorted([st for st in steps if st["side"] == s], key=lambda st: st["hs"]) for s in "LR"}
+    for s in "LR":
+        for a, b in zip(by_side[s], by_side[s][1:]):
+            a["next"] = b
+        by_side[s][-1]["next"] = None
+    finite = [st["to"] - st["hs"] for st in steps if st["next"] is not None]
+    nominal = int(np.median(finite)) if finite else 30
 
+    def n_stance(step):
+        return max((step["to"] - 1 - step["hs"]) if step["next"] is not None else nominal, 1)
+
+    def stance_u(step, frame):
+        u = (frame - step["hs"]) / n_stance(step)
+        if step["next"] is None:
+            u = min(u, HEEL_OFF)          # last footfall: the foot stays flat
+        return u
+
+    def ankle_of(toe, pitch):
+        return foot_points(toe, yaw, pitch, "L", body)[1]
+
+    def ankle_of_static(toe):
+        return ankle_of(toe, 0.0)
+
+    # Pelvis: over each stance ankle at mid-stance, sway toward the stance foot,
+    # and at the end over both feet after the closing step.
+    sway_amp = min(0.012 * body.H, 0.8 * body.foot_off)
+    last = max(steps, key=lambda st: st["hs_time"])
+    ordered = sorted(steps, key=lambda st: st["hs_time"])
+    keys, sway = [], []
+    for prev, st in zip([None] + ordered[:-1], ordered):
+        toe0, _p = _stance_foot(st, 0.4, yaw, origin, body)
+        a_ank = along(ankle_of_static(toe0))
+        sign = 1.0 if st["side"] == "L" else -1.0
+        if st is last:
+            keys.append([st["hs_time"] + 0.35, a_ank])
+            sway.append([st["hs_time"] + 0.35, 0.0])
+            continue
+        # At heel strike the pelvis trails the landing ankle by HS_LAG of the step.
+        step_mm = st["length_m"] * 1000.0 if prev is None else a_ank - along(ankle_of_static(_stance_foot(prev, 0.4, yaw, origin, body)[0]))
+        keys.append([st["hs_time"], a_ank - HS_LAG * step_mm])
+        if st["to_time"] < st["hs_time"] + 1000:
+            sway.append([(st["hs_time"] + st["to_time"]) / 2.0, sign * sway_amp])
+    for seq in (keys, sway):
+        seq.sort()
+        for a, b in zip(seq, seq[1:]):
+            if b[0] <= a[0]:
+                b[0] = a[0] + 1e-4
+    a_of_t = _pchip([k[0] for k in keys], [k[1] for k in keys])
+    l_of_t = _pchip([k[0] for k in sway], [k[1] for k in sway])
+    frames_t = np.arange(n_frames) / FPS
+    p_along = a_of_t(frames_t)
+    p_lat = l_of_t(frames_t)
+
+    def hip_xy(frame, side):
+        sign = 1.0 if side == "L" else -1.0
+        return p_along[frame], p_lat[frame] + sign * body.hip_w / 2.0
+
+    # Pelvis height keys: lowest at heel strike, highest at mid-stance.
+    z_keys = []
+    for st in steps:
+        hs = st["hs"]
+        if st.get("phantom") or not (0 <= hs < n_frames):
+            continue
+        toe, pitch = _stance_foot(st, 0.0, yaw, origin, body)
+        ank = ankle_of(toe, pitch)
+        ha, hl = hip_xy(hs, st["side"])
+        dh2 = (ha - along(ank)) ** 2 + (hl - across(ank)) ** 2
+        z_keys.append((hs, float(ank[2]) + math.sqrt(max(_reach(body, KNEE_LAND) ** 2 - dh2, 1.0))))
+        if st["next"] is None and st is not last:
+            continue                      # second-to-last foot: no mid-stance of its own
+        mid = hs + (n_stance(st) * 0.5 if st["next"] is not None else 0.35 * FPS)
+        mid_f = int(round(min(mid, n_frames - 1)))
+        toe, pitch = _stance_foot(st, 0.4, yaw, origin, body)
+        ank = ankle_of(toe, pitch)
+        ha, hl = hip_xy(mid_f, st["side"])
+        dh2 = (ha - along(ank)) ** 2 + (hl - across(ank)) ** 2
+        z_keys.append((mid, float(ank[2]) + math.sqrt(max(_reach(body, KNEE_MID) ** 2 - dh2, 1.0))))
+    z_keys.sort()
+    z_of_f = _pchip([k[0] for k in z_keys], [k[1] for k in z_keys])
+    p_z = z_of_f(np.arange(n_frames, dtype=float))
+
+    def phase(frame, side):
+        """('stance', step, u) or ('swing', step, None) for this side at this frame."""
+        chosen = by_side[side][0]
+        for st in by_side[side]:
+            if st["hs"] <= frame:
+                chosen = st
+        if frame < chosen["to"] or chosen["next"] is None:
+            return "stance", chosen, stance_u(chosen, frame)
+        return "swing", chosen, None
+
+    # Stance legs cap the pelvis height so the leg always reaches the planted ankle.
+    max_d = body.leg - 3.0
     for frame in range(n_frames):
-        toes = {}
-        pitches = {}
-        jobs = []
-        px, _along_y = _interp(frame / FPS, keys)
-        wave = 15.0 * math.sin(2.0 * math.pi * frame / stride_frames)
-        sway = 20.0 * math.sin(2.0 * math.pi * frame / max(stride_frames / 2.0, 1))
-        for side in ("L", "R"):
-            step = covering(frame, side)
-            planted = _heel_pose(step, yaw, origin, body)
-            swing = step["hs"] <= frame and frame >= step["to"] and (
-                step["next_hs_frame"] is None or frame < step["next_hs_frame"]
-            )
-            # Before this step's heel strike, if it is the first one, stay planted
-            # only when the phantom step says so. `covering` returns the step
-            # whose window contains the frame.
-            if frame < step["hs"]:
-                swing = False
-            if swing and step["next_hs_frame"] is not None and frame < step["next_hs_frame"]:
-                # Stand-in foot under the hip so the two-link solve can reach.
-                # The swing leg is replaced from hip and knee angles below.
-                fwd, lat = _fwd_lat(yaw)
-                sign = 1.0 if side == "L" else -1.0
-                under = np.array([px, sway + sign * body.hip_w / 2.0, 0.0])
-                toe = under + fwd * body.foot
-                pitch = 0.0
-            else:
-                toe = np.array(planted, float)
-                pitch = _pitch_for(step, frame, body, False, person, side, 0.0)[0]
-                if pitch < 0.0 and not step["toe_walk"]:
-                    # Rotate about the toe. Raise the toe so the heel stays on the floor.
-                    toe[2] = -math.sin(pitch) * body.foot
-                swing = False
-            toes[side] = toe
-            pitches[side] = pitch
-            if swing:
-                jobs.append(side)
-
-        px, _along_y = _interp(frame / FPS, keys)
-        base_z = body.ankle_h + body.leg * math.cos(math.radians(8))
-        pelvis = np.array([px, sway, base_z + wave])
-        phase = 2.0 * math.pi * frame / stride_frames
-        amp = 0.45 * person.arm_swing_scale
-        swings = (-amp * math.sin(phase), amp * math.sin(phase))
-        bends = (0.35, 0.35)
-        row = skeleton(toes["L"], toes["R"], pitches["L"], pitches["R"], pelvis, yaw, swings, bends, body)
-        stance_sides = tuple(side for side in ("L", "R") if side not in jobs)
-        for _raise in range(5):
-            raised = False
-            for side in stance_sides:
-                hip_i = L_HIP if side == "L" else R_HIP
-                kn_i = L_KN if side == "L" else R_KN
-                an_i = L_AN if side == "L" else R_AN
-                cap = 36.0 if person.reduced_knee_flexion_deg > 0 and side == person.reduced_knee_side else 55.0
-                if _point_flex(row[hip_i], row[kn_i], row[an_i]) > cap:
-                    if _try_shift(row, np.array([0.0, 0.0, 8.0]), stance_sides, body, yaw):
-                        raised = True
-            if not raised:
-                break
-        posed = {}
-        for side in jobs:
-            step = covering(frame, side)
-            nxt = next(item for item in steps if item["side"] == side and item["hs"] == step["next_hs_frame"])
-            span = max(step["next_hs_frame"] - step["hs"], 1)
-            g = (frame - step["hs"]) / span
-            stance_frac = (step["to"] - step["hs"]) / span
-            reduced = person.reduced_knee_flexion_deg > 0 and side == person.reduced_knee_side
-            peak = 60.0 - (person.reduced_knee_flexion_deg if reduced else 0.0)
-            knee_flex, hip_flex, abduct_u, u = _swing_curve(g, stance_frac, peak)
-            abduct = (28.0 if reduced else 0.0) * abduct_u
-            last = frame + 1 == step["next_hs_frame"]
-            if step["toe_walk"]:
-                pitch = math.asin(min(35.0, body.foot * 0.22) / body.foot)
-            elif last:
-                pitch = -0.12
-            else:
-                pitch = 0.18 * (1.0 - u)
-            fwd, _lat = _fwd_lat(yaw)
-            dest_toe = np.array(_heel_pose(nxt, yaw, origin, body), float)
-            if last and not step["toe_walk"]:
-                dest_toe[2] = -math.sin(pitch) * body.foot
-            if step["toe_walk"] or (last and pitch < 0.0):
-                planned = foot_points(dest_toe, yaw, pitch, side, body)[0]
-            else:
-                planned = dest_toe - fwd * body.foot
-                planned[2] = 0.0
-            hip_i = L_HIP if side == "L" else R_HIP
-            if stance_sides:
-                st0 = stance_sides[0]
-                sai = L_AN if st0 == "L" else R_AN
-                shi = L_HIP if st0 == "L" else R_HIP
-                ahead = float(np.dot(row[shi] - row[sai], fwd))
-                if ahead > 450.0:
-                    _try_shift(row, fwd * (450.0 - ahead), stance_sides, body, yaw)
-                    horiz = math.hypot(
-                        float(row[shi, 0] - row[sai, 0]),
-                        float(row[shi, 1] - row[sai, 1]),
-                    )
-                    max_h = body.leg - 6.0
-                    if horiz < max_h:
-                        room = math.sqrt(max_h * max_h - horiz * horiz)
-                        lift = float(row[sai, 2]) + room - float(row[shi, 2]) - 4.0
-                        if lift > 4.0:
-                            _try_shift(row, np.array([0.0, 0.0, lift]), stance_sides, body, yaw)
-            if last:
-                target_ankle = _ankle_for_heel(planned, yaw, pitch, side, body)
-                reach = _knee_reach(body, knee_flex) - 2.0
-                if stance_sides:
-                    st = stance_sides[0]
-                    sai = L_AN if st == "L" else R_AN
-                    stance_ank = row[sai]
-                else:
-                    stance_ank = target_ankle
-                ahead = float(np.dot(target_ankle - stance_ank, fwd))
-                half = min(max(ahead * 0.5, 30.0), reach * 0.62)
-                hf_rad = math.asin(half / reach)
-                desired = np.array(target_ankle - fwd * (reach * math.sin(hf_rad)), float)
-                desired[1] = float(row[hip_i, 1])
-                desired[2] = float(target_ankle[2]) + reach * math.cos(hf_rad)
-                hop = desired - row[hip_i]
-                for scale in (1.0, 0.8, 0.55, 0.3):
-                    if _try_shift(row, hop * scale, stance_sides, body, yaw):
-                        break
-                hip = row[hip_i].copy()
-                _err, hf, ab, knee, ankle, heel, big, small = _aim_foot(
-                    hip, planned, knee_flex, pitch, yaw, side, body
-                )
-                nudge = np.asarray(planned, float) - heel
-                if float(np.linalg.norm(nudge)) > 0.8:
-                    for scale in (1.0, 0.7, 0.4):
-                        if _try_shift(row, nudge * scale, stance_sides, body, yaw):
-                            hip = row[hip_i].copy()
-                            knee, ankle, heel, big, small = _swing_chain(
-                                hip, yaw, side, hf, knee_flex, ab, pitch, body
-                            )
-                            break
-            else:
-                if reduced:
-                    _try_shift(row, np.array([0.0, 0.0, 18.0]), stance_sides, body, yaw)
-                hip = row[hip_i].copy()
-                knee = ankle = heel = big = small = None
-                for _lift in range(14):
-                    knee, ankle, heel, big, small = _swing_chain(
-                        hip, yaw, side, hip_flex, knee_flex, abduct, pitch, body
-                    )
-                    toe_z = min(float(big[2]), float(small[2]))
-                    heel_z = float(heel[2])
-                    if toe_z >= 5.0 and heel_z >= 12.0:
-                        break
-                    if heel_z < 12.0:
-                        if not _try_shift(row, np.array([0.0, 0.0, max(8.0, 12.0 - heel_z)]), stance_sides, body, yaw):
-                            hip_flex += 3.0
-                        else:
-                            hip = row[hip_i].copy()
-                    else:
-                        hip_flex += 3.0
-                if float(heel[2]) < 12.0 or min(float(big[2]), float(small[2])) < 5.0:
-                    best_z = min(float(heel[2]), float(big[2]), float(small[2]))
-                    best_pose = (knee, ankle, heel, big, small)
-                    best_hf = hip_flex
-                    forward_now = float(np.dot(heel, fwd))
-                    for trial in range(-15, 85, 5):
-                        tk, ta, th, tb, ts = _swing_chain(
-                            hip, yaw, side, float(trial), knee_flex, abduct, pitch, body
-                        )
-                        if float(np.dot(th, fwd)) < forward_now - 40.0:
-                            continue
-                        if float(np.dot(th - np.asarray(planned, float), fwd)) > 70.0:
-                            continue
-                        z = min(float(th[2]), float(tb[2]), float(ts[2]))
-                        if z > best_z:
-                            best_z = z
-                            best_hf = float(trial)
-                            best_pose = (tk, ta, th, tb, ts)
-                    hip_flex = best_hf
-                    knee, ankle, heel, big, small = best_pose
-                for _clear in range(4):
-                    if min(float(heel[2]), float(big[2]), float(small[2])) >= 12.0:
-                        break
-                    if not _try_shift(row, np.array([0.0, 0.0, 8.0]), stance_sides, body, yaw):
-                        break
-                    hip = row[hip_i].copy()
-                    knee, ankle, heel, big, small = _swing_chain(
-                        hip, yaw, side, hip_flex, knee_flex, abduct, pitch, body
-                    )
-                while (
-                    not reduced
-                    and min(float(heel[2]), float(big[2]), float(small[2])) < 12.0
-                    and knee_flex < peak - 0.5
-                ):
-                    knee_flex += 4.0
-                    knee, ankle, heel, big, small = _swing_chain(
-                        hip, yaw, side, hip_flex, knee_flex, abduct, pitch, body
-                    )
-                if u > 0.35:
-                    gap = float(np.dot(np.asarray(planned, float) - heel, fwd))
-                    if gap > 30.0:
-                        step = min(36.0, gap * 0.2)
-                        if not _try_shift(row, fwd * step, stance_sides, body, yaw):
-                            step *= 0.5
-                            _try_shift(row, fwd * step, stance_sides, body, yaw)
-                        hip = row[hip_i].copy()
-                        knee, ankle, heel, big, small = _swing_chain(
-                            hip, yaw, side, hip_flex, knee_flex, abduct, pitch, body
-                        )
-                pulled = 0.0
-                for _pullback in range(4):
-                    over = float(np.dot(heel - np.asarray(planned, float), fwd))
-                    if over <= 40.0 or pulled >= 8.0:
-                        break
-                    hip_flex -= 2.0
-                    pulled += 2.0
-                    knee, ankle, heel, big, small = _swing_chain(
-                        hip, yaw, side, hip_flex, knee_flex, abduct, pitch, body
-                    )
-            if not last:
-                low = min(float(heel[2]), float(big[2]), float(small[2]))
-                if low < 12.0:
-                    best_z = low
-                    best_pose = (knee, ankle, heel, big, small)
-                    best_hf = hip_flex
-                    for trial in range(-20, 80, 4):
-                        tk, ta, th, tb, ts = _swing_chain(
-                            hip, yaw, side, float(trial), knee_flex, abduct, pitch, body
-                        )
-                        z = min(float(th[2]), float(tb[2]), float(ts[2]))
-                        if z > best_z:
-                            best_z = z
-                            best_hf = float(trial)
-                            best_pose = (tk, ta, th, tb, ts)
-                    hip_flex = best_hf
-                    knee, ankle, heel, big, small = best_pose
-            posed[side] = (hf if last else hip_flex, knee_flex, ab if last else abduct, pitch)
-            _write_leg(row, side, knee, ankle, heel, big, small)
-        for side, (use_hf, use_knee, use_ab, use_pitch) in posed.items():
-            hip_i = L_HIP if side == "L" else R_HIP
-            kn_i = L_KN if side == "L" else R_KN
-            an_i = L_AN if side == "L" else R_AN
-            if abs(float(np.linalg.norm(row[hip_i] - row[kn_i])) - body.thigh) <= 1.5:
+        for side in "LR":
+            kind, st, u = phase(frame, side)
+            if kind != "stance":
                 continue
-            fwd_now, _lat_now = _fwd_lat(yaw)
-            try:
-                row[kn_i] = knee_position(row[hip_i], row[an_i], body, fwd_now)
-            except RuntimeError:
-                knee, ankle, heel, big, small = _swing_chain(
-                    row[hip_i], yaw, side, use_hf, use_knee, use_ab, use_pitch, body
-                )
-                _write_leg(row, side, knee, ankle, heel, big, small)
-        if not jobs:
-            _lift_double_support(row, body, yaw, person)
-        kp[frame] = row
+            toe, pitch = _stance_foot(st, u, yaw, origin, body)
+            ank = ankle_of(toe, pitch)
+            ha, hl = hip_xy(frame, side)
+            dh2 = (ha - along(ank)) ** 2 + (hl - across(ank)) ** 2
+            cap = float(ank[2]) + math.sqrt(max(max_d ** 2 - dh2, 1.0))
+            p_z[frame] = min(p_z[frame], cap)
+    # A cap may only lower the pelvis; let it sink into and rise out of a cap at a
+    # limited rate so releasing a leg never makes the pelvis jump.
+    rate = 10.0                   # mm per frame (0.6 m/s), above the plan's own slopes
+    for i in range(1, n_frames):
+        p_z[i] = min(p_z[i], p_z[i - 1] + rate)
+    for i in range(n_frames - 2, -1, -1):
+        p_z[i] = min(p_z[i], p_z[i + 1] + rate)
+
+    def pelvis_at(frame):
+        return origin + fwd * p_along[frame] + lat * p_lat[frame] + up * p_z[frame]
+
+    def hip_at(frame, side):
+        hl, hr = _hips(pelvis_at(frame), yaw, body)
+        return hl if side == "L" else hr
+
+    def knee_angle(hip, ank):
+        return _knee_for(body, float(np.linalg.norm(np.asarray(ank) - np.asarray(hip))))
+
+    reduced = person.reduced_knee_flexion_deg if person.reduced_knee_flexion_deg > 0 else 0.0
+
+    def swing_pose(st, frame, side):
+        f0, f1 = st["to"] - 1, st["next"]["hs"]
+        n = max(f1 - f0, 2)
+        s = (frame - f0) / n
+        toe0, pitch0 = _stance_foot(st, 1.0, yaw, origin, body)
+        ank0 = ankle_of(toe0, pitch0)
+        toe1, pitch1 = _stance_foot(st["next"], 0.0, yaw, origin, body)
+        ank1 = ankle_of(toe1, pitch1)
+        k0 = knee_angle(hip_at(f0, side), ank0)
+        k1 = knee_angle(hip_at(f1, side), ank1)
+        # knee rate at the end of stance, per unit of swing progress
+        if f0 - 1 >= st["hs"]:
+            tprev, pprev = _stance_foot(st, stance_u(st, f0 - 1), yaw, origin, body)
+            m0 = (k0 - knee_angle(hip_at(f0 - 1, side), ankle_of(tprev, pprev))) * n
+        else:
+            m0 = 0.0
+        peak = KNEE_PEAK - (reduced if side == person.reduced_knee_side else 0.0)
+        peak = max(peak, k0 + 5.0)
+        m0 = min(max(m0, 0.0), 2.5 * (peak - k0) / PEAK_AT)
+        if s <= PEAK_AT:
+            k = _hermite(k0, m0 * PEAK_AT, peak, 0.0, s / PEAK_AT)
+        else:
+            # Still extending at contact (cosine quarter), so the heel keeps descending.
+            k = k1 + (peak - k1) * math.cos(0.5 * math.pi * (s - PEAK_AT) / (1.0 - PEAK_AT))
+        # The foot levels out by mid-swing (toes up for the landing), so the toe clears.
+        w = min(s / SWING_LEVEL_AT, 1.0)
+        pitch = pitch1 + (pitch0 - pitch1) * (1.0 - w) ** 1.7   # starts toes-up at once, levels smoothly
+        a = along(ank0) + (along(ank1) - along(ank0)) * _progress(s)
+        sign = 1.0 if side == "L" else -1.0
+        circ = (0.02 * body.H if side == person.reduced_knee_side and reduced > 0 else 0.0) * math.sin(math.pi * s)
+        l = across(ank0) + (across(ank1) - across(ank0)) * _ease(s) + sign * circ
+        hip = hip_at(frame, side)
+        da, dl = a - along(hip), l - across(hip)
+        # Clearance guard: if the lowest foot point would come within CLEARANCE of
+        # the floor in mid-swing, bend the knee just enough to hold it there.
+        heel_p, ank_p, big_p, _s = foot_points(np.zeros(3), yaw, pitch, side, body)
+        below = float(ank_p[2] - min(heel_p[2], big_p[2]))      # lowest point under the ankle
+        need = below + CLEARANCE * min(1.0, s * n / 2.0, (1.0 - s) * n / 2.0)   # ramps over 2 frames
+        top = float(hip[2]) - need
+        k_min = _knee_for(body, math.sqrt(da * da + dl * dl + max(top, 1.0) ** 2))
+        k = max(k, k_min)
+        r = _reach(body, k)
+        vert = math.sqrt(max(r * r - da * da - dl * dl, 1.0))
+        ank = hip + fwd * da + lat * dl - up * vert
+        return _toe_from_ankle(ank, yaw, pitch, body), pitch
+
+    kp = np.zeros((n_frames, 23, 3))
+    for frame in range(n_frames):
+        legs = {}
+        for side in "LR":
+            kind, st, u = phase(frame, side)
+            if kind == "stance":
+                legs[side] = _stance_foot(st, u, yaw, origin, body)
+            else:
+                legs[side] = swing_pose(st, frame, side)
+        pelvis = pelvis_at(frame)
+        hip_l, hip_r = _hips(pelvis, yaw, body)
+        thigh = {}
+        for side, hip in (("L", hip_l), ("R", hip_r)):
+            ank = foot_points(legs[side][0], yaw, legs[side][1], side, body)[1]
+            d = ank - hip
+            thigh[side] = math.atan2(float(np.dot(d, fwd)), float(-d[2]))
+        scale = 0.5 * person.arm_swing_scale
+        swings = (scale * thigh["R"], scale * thigh["L"])
+        bends = (0.35 + 0.15 * max(swings[0], 0.0), 0.35 + 0.15 * max(swings[1], 0.0))
+        kp[frame] = _assemble(pelvis, yaw, body, legs, swings, bends)
 
     events = {"left": [], "right": []}
     for step in steps:
@@ -1027,7 +931,9 @@ def _render_gait(person: Person, distance_m: float, zone: bool, yaw: float, orig
         entry = {"toe_walk": bool(step["toe_walk"])}
         if not step.get("phantom") and 0 <= step["hs"] < n_frames:
             entry["hs"] = int(step["hs"])
-        if 0 <= step["to"] < n_frames:
+            heel = _heel_pose(step, yaw, origin, body) - fwd * body.foot
+            entry["heel_mm"] = [round(float(heel[0]), 1), round(float(heel[1]), 1)]
+        if step["next"] is not None and 0 <= step["to"] < n_frames:
             entry["to"] = int(step["to"])
         if "hs" in entry or "to" in entry:
             events[name].append(entry)
