@@ -16,6 +16,7 @@ const routes = [
   ["p-SYN-A-0102", "#/p/SYN-A-0102"],
   ["p-SYN-A-0102-history", "#/p/SYN-A-0102/history"],
   ["crossover", "#/crossover"],
+  ["review-SYN-C-0007", "#/review/SYN-C-0007"],
 ];
 const widths = [
   [1440, 900],
@@ -42,6 +43,13 @@ const widths = [
         await page.setViewportSize({ width, height });
         await page.goto(`${base}/${hash}`, { waitUntil: "networkidle" });
         await page.waitForSelector("#view h1");
+        if (hash === "#/review/SYN-C-0007") {
+          await page.waitForSelector("[data-decision='confirm']");
+          await page.click("[data-decision='confirm']");
+          await page.waitForSelector("#fhir");
+          await page.reload({ waitUntil: "networkidle" });
+          await page.waitForSelector("#fhir");
+        }
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
         if (overflow) throw new Error(`horizontal scroll ${name} ${lang} ${width}`);
         if (errors.length) throw new Error(errors.join("\n"));

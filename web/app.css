@@ -62,3 +62,10 @@ svg{max-width:100%}
 @media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.top{padding:20px 24px;gap:16px}.nav{gap:4px}.nav a{padding:9px 12px}}
 @media(max-width:520px){.top{padding:18px 16px;gap:16px 12px}.brand{font-size:20px}.nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;width:100%}.nav a{font-size:13px;text-align:center;padding:10px 5px;line-height:1.5}#view{padding:28px 16px 36px}.lead{font-size:16px;margin-block:20px 24px}.cards{grid-template-columns:1fr;gap:12px}.cards>a.card{min-height:106px;gap:16px;padding:20px;flex-direction:row;align-items:center}.cards>a.card::before{flex:0 0 22px}.cards>a.card strong{flex:1;font-size:16px}.card,.panel{padding:18px}.badge{font-size:11px}body>.note{padding:18px 16px}.table-scroll{overflow-x:visible;contain:none;border:0;border-radius:0}.metrics{width:100%;min-width:0}.metrics tr:first-child{display:none}.metrics tr{display:block;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;padding:14px;background:var(--card)}.metrics td{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;border:0;padding:5px 0;min-width:0}.metrics td>span{min-width:0;max-width:100%}.metrics td::before{content:attr(data-label);color:var(--muted);font-size:13px}.metrics td:first-child{padding-bottom:12px;margin-bottom:8px;border-bottom:1px solid var(--border);font-weight:500;color:var(--text)}.metrics td.value{font-size:18px}h2{margin-top:28px}.flag{padding:14px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
+.queue{display:flex;flex-direction:column;gap:8px}
+.queue a{display:block;min-width:0;max-width:100%;overflow-wrap:anywhere;color:var(--text);text-decoration:none}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.actions button[aria-pressed=true]{border-color:var(--text)}
+.field{display:grid;gap:4px;min-width:0;max-width:100%}
+textarea{resize:vertical}
+.fhir{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0;direction:ltr;font-family:var(--font-mono);font-size:12px;max-width:100%;margin:0}

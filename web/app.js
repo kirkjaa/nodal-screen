@@ -41,7 +41,8 @@ function applyDocument() {
     const link = document.createElement("a");
     link.href = href;
     link.textContent = t(key);
-    if (hash === href || (href === "#/" && (hash === "" || hash === "#"))) link.setAttribute("aria-current", "page");
+    const onReview = href === "#/review" && hash.startsWith("#/review/");
+    if (hash === href || onReview || (href === "#/" && (hash === "" || hash === "#"))) link.setAttribute("aria-current", "page");
     nav.append(link);
   }
   const button = document.querySelector("#lang");
@@ -52,6 +53,8 @@ function routeOf(hash) {
   const text = hash || "#/";
   const historyMatch = text.match(/^#\/p\/([^/]+)\/history$/);
   if (historyMatch) return { mod: history, pid: decodeURIComponent(historyMatch[1]), href: text };
+  const reviewMatch = text.match(/^#\/review\/([^/]+)$/);
+  if (reviewMatch) return { mod: review, pid: decodeURIComponent(reviewMatch[1]), href: text };
   const personMatch = text.match(/^#\/p\/([^/]+)$/);
   if (personMatch) return { mod: participant, pid: decodeURIComponent(personMatch[1]), href: text };
   const table = {
