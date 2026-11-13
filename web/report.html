@@ -253,8 +253,17 @@ table.src td:first-child{width:260px;color:var(--muted);font-family:var(--font-m
   <span>Screening only · not a diagnosis</span>
 </footer>
 
-<!-- The report's data. report-data.js is written by `python -m sw.report_data`; without it the sample file loads. -->
-<script src="report-data.js" onerror="var s=document.createElement('script');s.src='report-data.sample.js';document.head.appendChild(s)"></script>
+<!-- The report's data. report-data.js is written by `python -m sw.report_data`; without it the sample file loads.
+     report.html?data=<path> loads another session's file instead (relative to this page, or a file:// URL). -->
+<script>
+(function () {
+  var p = new URLSearchParams(location.search).get('data');
+  var s = document.createElement('script');
+  s.src = p || 'report-data.js';
+  s.onerror = function () { var f = document.createElement('script'); f.src = 'report-data.sample.js'; document.head.appendChild(f); };
+  document.head.appendChild(s);
+})();
+</script>
 <script>
 // ---------- tabs and theme
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {

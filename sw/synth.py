@@ -39,6 +39,44 @@ PHASES = [
 ]
 CYCLE_S = sum(p[1] for p in PHASES)  # 11.6 s
 
+# Other stations, same parameters per phase. "kitting" is PHASES above. Each is a
+# plausible cycle for the station named, chosen so the reports differ in the way
+# real ones would: packing is mostly waist-height work with one lift, assembly is
+# a still trunk with the head down over the part, restock alternates overhead
+# and low-shelf reaches.
+PROFILES = {
+    "kitting": PHASES,
+    "packing": [
+        ("stand", 1.2, 4, 24, 24, 12),
+        ("reach carton", 1.0, 10, 48, 46, 22),
+        ("pack", 2.4, 14, 42, 44, 30),
+        ("tape", 1.2, 12, 40, 36, 28),
+        ("lift to pallet", 1.0, 32, 52, 50, 10),
+        ("place on pallet", 0.8, 38, 46, 44, 10),
+        ("stand", 1.0, 4, 24, 24, 12),
+    ],
+    "assembly": [
+        ("stand", 1.0, 6, 28, 28, 18),
+        ("pick part", 0.8, 10, 40, 36, 30),
+        ("fit", 2.6, 12, 38, 38, 36),
+        ("inspect", 1.2, 8, 34, 34, 42),
+        ("set aside", 0.8, 10, 36, 30, 24),
+    ],
+    "restock": [
+        ("stand", 1.0, 4, 22, 22, 10),
+        ("take from trolley", 1.0, 16, 44, 44, 20),
+        ("reach high shelf", 1.2, -4, 110, 96, -10),
+        ("place high", 0.8, -4, 105, 92, -12),
+        ("stand", 0.8, 4, 24, 22, 8),
+        ("take from trolley", 1.0, 16, 44, 44, 20),
+        ("lower shelf", 1.2, 48, 40, 40, 14),
+        ("place low", 0.8, 44, 38, 38, 14),
+        ("stand", 1.0, 4, 22, 22, 10),
+    ],
+}
+# wrist deviation per profile: (base deg, amplitude deg) over the cycle
+WRIST = {"kitting": (8, 9), "packing": (10, 10), "assembly": (14, 12), "restock": (6, 8)}
+
 
 def _rot_x(deg):
     a = np.radians(deg)
@@ -99,33 +137,37 @@ def build_frame(trunk_deg, arm_r_deg, arm_l_deg, neck_deg, wrist_dev_deg=0.0):
     return X
 
 
-def cycle_params(t, rng, var):
+def cycle_params(t, rng, var, phases=PHASES):
     """Interpolated posture parameters at time t within a cycle, with per-cycle variation."""
-    t = t % CYCLE_S
-    edges = np.cumsum([0] + [p[1] for p in PHASES])
+    cycle_s = sum(p[1] for p in phases)
+    t = t % cycle_s
+    edges = np.cumsum([0] + [p[1] for p in phases])
     i = int(np.searchsorted(edges, t, side="right") - 1)
-    i = min(i, len(PHASES) - 1)
-    nxt = min(i + 1, len(PHASES) - 1)
-    u = (t - edges[i]) / PHASES[i][1]
+    i = min(i, len(phases) - 1)
+    nxt = min(i + 1, len(phases) - 1)
+    u = (t - edges[i]) / phases[i][1]
     u = u * u * (3 - 2 * u)  # smooth step between phases
-    cur, after = np.array(PHASES[i][2:], float), np.array(PHASES[nxt][2:], float)
+    cur, after = np.array(phases[i][2:], float), np.array(phases[nxt][2:], float)
     return (cur + (after - cur) * u) * (1 + var)
 
 
-def generate(cycles=9, fps=30, seed=7):
+def generate(cycles=9, fps=30, seed=7, profile="kitting"):
+    phases = PROFILES[profile]
+    cycle_s = sum(p[1] for p in phases)
+    w_base, w_amp = WRIST[profile]
     rng = np.random.default_rng(seed)
-    n = int(round(cycles * CYCLE_S * fps))
+    n = int(round(cycles * cycle_s * fps))
     X = np.full((n, 133, 3), np.nan)
     var = np.zeros(4)
     last_cycle = -1
     for f in range(n):
         t = f / fps
-        c = int(t // CYCLE_S)
+        c = int(t // cycle_s)
         if c != last_cycle:
             var = rng.normal(0, 0.06, 4)  # each cycle a little different
             last_cycle = c
-        trunk, arm_r, arm_l, neck = cycle_params(t, rng, var)
-        X[f] = build_frame(trunk, arm_r, arm_l, neck, wrist_dev_deg=8 + 9 * np.sin(2 * np.pi * t / CYCLE_S))
+        trunk, arm_r, arm_l, neck = cycle_params(t, rng, var, phases)
+        X[f] = build_frame(trunk, arm_r, arm_l, neck, wrist_dev_deg=w_base + w_amp * np.sin(2 * np.pi * t / cycle_s))
     # measurement noise, a few millimetres, as triangulation gives; joints the model never places stay NaN
     placed = ~np.isnan(build_frame(0, 25, 25, 10)[:, 0])
     X[:, placed] += rng.normal(0, 0.004, (n, int(placed.sum()), 3))
@@ -139,16 +181,18 @@ def main():
     ap.add_argument("--cycles", type=int, default=9)
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--profile", choices=sorted(PROFILES), default="kitting", help="station cycle to simulate")
     a = ap.parse_args()
     out = Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    X = generate(a.cycles, a.fps, a.seed)
+    X = generate(a.cycles, a.fps, a.seed, a.profile)
+    cycle_s = sum(p[1] for p in PROFILES[a.profile])
     np.savez_compressed(out / "skeleton3d.npz", X=X, fps=a.fps)
-    meta = {"data_kind": "synthetic", "source": "sw.synth", "cycles": a.cycles, "fps": a.fps, "seed": a.seed,
-            "frames": int(X.shape[0]), "duration_s": round(X.shape[0] / a.fps, 1), "cycle_s": CYCLE_S,
+    meta = {"data_kind": "synthetic", "source": "sw.synth", "profile": a.profile, "cycles": a.cycles, "fps": a.fps,
+            "seed": a.seed, "frames": int(X.shape[0]), "duration_s": round(X.shape[0] / a.fps, 1), "cycle_s": cycle_s,
             "note": "Synthetic worker: posture parameters per phase, not a recording. For pipeline testing and layout."}
     (out / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    print(f"wrote {out / 'skeleton3d.npz'}: {X.shape[0]} frames, {a.cycles} cycles, {meta['duration_s']} s")
+    print(f"wrote {out / 'skeleton3d.npz'}: {a.profile}, {X.shape[0]} frames, {a.cycles} cycles, {meta['duration_s']} s")
 
 
 if __name__ == "__main__":
