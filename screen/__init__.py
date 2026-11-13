@@ -1,1 +1,1 @@
-"""Screening reference values and flags."""
+"""NODAL Screen: synthetic screening movement, reference values and flags."""
