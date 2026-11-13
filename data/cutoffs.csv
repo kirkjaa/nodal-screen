@@ -1,0 +1,14 @@
+source_id,metric,group,op,threshold,unit,meaning,table_ref,status
+steadi,tug_time,all,>=,12,s,Older adult at or above this time is at risk for falling; kept on for every TUG,STEADI-Assessment-TUG-508.pdf,transcribed
+ewgsop2,gait_speed,adult,<=,0.8,m/s,Low performance cut-off used as a severe sarcopenia indicator,Table 3,transcribed
+ewgsop2,sts5_time,adult,>,15,s,Five rises; low strength cut-off,Table 3,transcribed
+awgs2019,gait_speed,adult,<,1.0,m/s,6 m walk low physical performance,PubMed abstract 32033882,transcribed
+awgs2019,sts5_time,adult,>=,12,s,Five-time chair stand low physical performance,PubMed abstract 32033882,transcribed
+perera2006,gait_speed,all,>=,0.05,m/s,Small meaningful decrease from an earlier visit,Table 5 recommended criterion,transcribed
+perera2006,gait_speed,all,>=,0.10,m/s,Substantial meaningful decrease from an earlier visit,Table 5 recommended criterion,transcribed
+nodal-rule,step_length_si,all,>=,15,%,Flag band for step-length symmetry index,CONTRACT section 4,transcribed
+nodal-rule,step_length_si,all,>=,10,%,Watch band for step-length symmetry index,CONTRACT section 4,transcribed
+nodal-rule,step_time_si,all,>=,15,%,Flag band for step-time symmetry index,CONTRACT section 4,transcribed
+nodal-rule,step_time_si,all,>=,10,%,Watch band for step-time symmetry index,CONTRACT section 4,transcribed
+nodal-rule,heel_first_share,child,<,50,%,Flag band for heel-first share,CONTRACT section 4,transcribed
+nodal-rule,heel_first_share,child,<=,80,%,Watch band for heel-first share,CONTRACT section 4,transcribed

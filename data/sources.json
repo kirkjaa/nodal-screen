@@ -1,0 +1,62 @@
+{
+  "bohannon2011": {
+    "citation": "Bohannon RW, Andrews AW. Normal walking speed: a descriptive meta-analysis. Physiotherapy. 2011;97(3):182-189.",
+    "doi_or_url": "https://pubmed.ncbi.nlm.nih.gov/21820535/",
+    "used_for": "Adult gait speed grand means by sex and decade. Table 2 reports a 95% CI, not an SD, so sd is blank.",
+    "verified": false
+  },
+  "lythgo2009": {
+    "citation": "Lythgo, Wilson and Galea. Gait & Posture. 2009;30(4):502-506.",
+    "doi_or_url": "",
+    "used_for": "Child gait speed, cadence, stride length, step time, double support and height-normalized stride. Table not opened.",
+    "verified": false
+  },
+  "bohannon2006tug": {
+    "citation": "Bohannon. J Geriatr Phys Ther. 2006;29(2):64-68.",
+    "doi_or_url": "",
+    "used_for": "TUG reference values by age. Table not opened.",
+    "verified": false
+  },
+  "bohannon2006sts": {
+    "citation": "Bohannon. Percept Mot Skills. 2006;103(1):215-222.",
+    "doi_or_url": "",
+    "used_for": "Five-repetition sit-to-stand reference values by age. Table not opened.",
+    "verified": false
+  },
+  "springer2007": {
+    "citation": "Springer et al. J Geriatr Phys Ther. 2007;30(1):8-15.",
+    "doi_or_url": "",
+    "used_for": "Single-leg stance, eyes open, by age and sex. Table not opened.",
+    "verified": false
+  },
+  "steadi": {
+    "citation": "CDC STEADI. Assessment: Timed Up and Go (TUG).",
+    "doi_or_url": "https://www.cdc.gov/steadi/media/pdfs/STEADI-Assessment-TUG-508.pdf",
+    "used_for": "TUG time at or above which an older adult is at risk for falling.",
+    "verified": false
+  },
+  "ewgsop2": {
+    "citation": "Cruz-Jentoft AJ, Bahat G, Bauer J, et al. Sarcopenia: revised European consensus. Age Ageing. 2019;48(1):16-31.",
+    "doi_or_url": "https://doi.org/10.1093/ageing/afy169",
+    "used_for": "Five-rise chair-stand cut-off and gait-speed cut-off for low performance.",
+    "verified": false
+  },
+  "awgs2019": {
+    "citation": "Chen LK, et al. Asian Working Group for Sarcopenia: 2019 consensus update. J Am Med Dir Assoc. 2020;21(3):300-307.",
+    "doi_or_url": "https://pubmed.ncbi.nlm.nih.gov/32033882/",
+    "used_for": "6 m gait speed and five-time chair-stand cut-offs. Taken from the PubMed abstract; the full text was not opened.",
+    "verified": false
+  },
+  "perera2006": {
+    "citation": "Perera S, Mody SH, Woodman RC, Studenski SA. Meaningful change and responsiveness in common physical performance measures in older adults. J Am Geriatr Soc. 2006;54(5):743-749.",
+    "doi_or_url": "https://doi.org/10.1111/j.1532-5415.2006.00701.x",
+    "used_for": "Small and substantial meaningful change in gait speed.",
+    "verified": false
+  },
+  "nodal-rule": {
+    "citation": "NODAL screening rule (CONTRACT section 4), not a published cut-off.",
+    "doi_or_url": "",
+    "used_for": "Symmetry index bands and the heel-first contact bands.",
+    "verified": false
+  }
+}

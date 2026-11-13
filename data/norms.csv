@@ -1,0 +1,24 @@
+source_id,metric,sex,age_min,age_max,condition,mean,sd,n,table_ref,status
+bohannon2011,gait_speed,M,20,29,normal pace,1.358,,155,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,M,30,39,normal pace,1.433,,83,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,M,40,49,normal pace,1.434,,96,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,M,50,59,normal pace,1.433,,436,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,M,60,69,normal pace,1.339,,941,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,M,70,79,normal pace,1.262,,3671,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,M,80,99,normal pace,0.968,,1091,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,F,20,29,normal pace,1.341,,180,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,F,30,39,normal pace,1.337,,104,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,F,40,49,normal pace,1.390,,142,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,F,50,59,normal pace,1.313,,456,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,F,60,69,normal pace,1.241,,5013,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,F,70,79,normal pace,1.132,,8591,Table 2 grand mean,transcribed
+bohannon2011,gait_speed,F,80,99,normal pace,0.943,,2152,Table 2 grand mean,transcribed
+lythgo2009,gait_speed,all,,,,,,,,placeholder
+lythgo2009,cadence,all,,,,,,,,placeholder
+lythgo2009,stride_length,all,,,,,,,,placeholder
+lythgo2009,step_time,all,,,,,,,,placeholder
+lythgo2009,double_support,all,,,,,,,,placeholder
+lythgo2009,stride_length_h,all,,,,,,,,placeholder
+bohannon2006tug,tug_time,all,,,,,,,,placeholder
+bohannon2006sts,sts5_time,all,,,,,,,,placeholder
+springer2007,sls_time,all,,,,,,,,placeholder
