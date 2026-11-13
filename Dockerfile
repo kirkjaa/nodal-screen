@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY server/ server/
 COPY web/ web/
 COPY data/samples/ data/samples/
+COPY data/replay/ data/replay/
 COPY data/cohort.json data/cohort.json
 COPY data/sources.json data/sources.json
 COPY data/norms.csv data/norms.csv
