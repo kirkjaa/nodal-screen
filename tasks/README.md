@@ -1,6 +1,6 @@
 # Task queue
 
-Kirk pastes into Cursor: **"Do T0N. Follow AGENTS.md."** After the agent stops, Kirk tells Claude Code: **"Review T0N."** Claude merges or writes `tasks/T0N.fix.md`, which the agent does next with "Do T0N.fix".
+Loop per task (details in `REVIEW-PROTOCOL.md`): Cursor builds ("Do T0N"), a fresh Cursor chat does the first review ("First review T0N"), Claude gates in a new session ("Gate T0N"), Cursor merges ("Merge T0N"). Fixes come back as `tasks/T0N.fix.md` ("Do T0N.fix").
 
 Cards marked *(card later)* are written by Claude after the cards before them are reviewed.
 
