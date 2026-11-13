@@ -47,7 +47,8 @@ const widths = [
       for (const [width, height] of widths) {
         errors.length = 0;
         await page.setViewportSize({ width, height });
-        await page.goto(`${base}/${hash}`, { waitUntil: "networkidle" });
+        // The workplace page embeds the Strain Watch report, which keeps animating: wait for load there.
+        await page.goto(`${base}/${hash}`, { waitUntil: hash === "#/crossover" ? "load" : "networkidle" });
         await page.waitForSelector("#view h1");
         if (hash === "#/review/SYN-C-0102") {
           await page.waitForSelector("[data-decision='confirm']");

@@ -301,3 +301,46 @@ dl.qc dd.grn{color:var(--ready)} dl.qc dd.amb{color:var(--alpha)} dl.qc dd.red{c
 .cap-log p.grn{color:var(--ready)}
 @media (max-width:1180px){.cap{grid-template-columns:280px minmax(0,1fr)}.cap-events{grid-column:1/-1;border-inline-start:0;border-top:1px solid var(--rule)}}
 @media (max-width:720px){.cap{grid-template-columns:1fr}.cap-rig{border-inline-end:0;border-bottom:1px solid var(--rule)}.cap-main{padding:14px 16px}.cap-tiles{grid-template-columns:1fr 1fr;gap:8px}.cap-log{max-height:40vh}}
+
+/* ---- Workplace: Strain Watch in place ---- */
+#view.flush{padding:0}
+.sw-note{margin:0;padding:8px 24px;font-weight:400;line-height:1.6;letter-spacing:.14em;border-bottom:1px solid var(--rule);color:var(--muted);font-size:10px}
+.sw-note a{color:var(--text)}
+.sw-frame{display:block;width:100%;height:calc(100vh - 56px - 46px - 34px - 30px);min-height:640px;border:0;background:var(--bg)}
+
+/* ---- About ---- */
+.about-steps{grid-template-columns:repeat(4,minmax(0,1fr))}
+.about-step{display:flex;flex-direction:column;gap:10px;padding:14px 16px;min-height:96px;color:var(--text)}
+.about-step .k{margin:0;color:var(--muted)}
+.about-body{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;padding:22px 24px;border-bottom:1px solid var(--rule)}
+.about-col>.k{margin:0 0 10px}
+.about-text{margin:0;max-width:75ch;line-height:1.7}
+.about-col .warn{margin-bottom:12px}
+.about-sources td{vertical-align:top;font-size:13.5px}
+.about-sources td.mono{font-size:10px;white-space:nowrap}
+.about-sources a{color:var(--text)}
+
+/* ---- Review queue and case ---- */
+.case-wrap{padding:18px 24px 40px}
+.case-list{display:grid;gap:10px}
+.case{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,2fr) minmax(0,1.3fr) auto;gap:18px;align-items:center;border:1px solid var(--border);border-inline-start:3px solid var(--border);border-radius:6px;background:var(--card);padding:14px 18px;color:var(--body);text-decoration:none}
+.case:hover{border-color:var(--strong)}
+.case.red{border-inline-start-color:var(--live)} .case.amb{border-inline-start-color:var(--alpha)} .case.grn{border-inline-start-color:var(--ready)}
+.case-who strong{display:block;font-size:20px;font-weight:300;color:var(--text)}
+.case-who .k,.case-what .k{margin:4px 0 0}
+.case-title{margin:0;color:var(--text)}
+.case-path{margin:0;font-size:14px}
+.decide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.decide .btn{padding:10px 8px;text-align:center}
+.decide .btn[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.decide-recapture[aria-pressed="true"]{background:var(--live) !important;border-color:var(--live) !important;color:#fff !important}
+.field{display:block;margin-bottom:12px}
+.field .k{display:block;margin-bottom:6px}
+.decide-note{width:100%;font:13px var(--font-display);background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:8px 10px;resize:vertical}
+.decide-status{min-height:1.4em}
+pre.fhir{margin:8px 0 0;padding:12px;background:var(--inset);border:1px solid var(--rule);border-radius:4px;font:11px/1.6 var(--font-mono);color:var(--body);overflow:auto;white-space:pre}
+a.btn{display:inline-flex;align-items:center;text-decoration:none}
+@media (max-width:1100px){.about-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.about-body{grid-template-columns:1fr}.case{grid-template-columns:1fr 1fr}.case-state{justify-self:start}}
+@media (max-width:640px){.about-steps{grid-template-columns:1fr}.about-body,.case-wrap{padding-inline:16px}.case{grid-template-columns:1fr;gap:8px}.sw-note{padding-inline:16px}}
+
+@media (max-width:640px){.rp-head .chip{white-space:normal;max-width:100%}.rp-head .chips{width:100%}}
