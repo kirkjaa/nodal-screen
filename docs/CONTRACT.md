@@ -1,4 +1,4 @@
-# NODAL Screen data contract (v1, 13 Nov 2026)
+# NODAL Screen data contract (v1.1, 13 Nov 2026: metric `cutoff` field, status order, child and sit-to-stand sources)
 
 Owner: Claude Code. Cursor agents read it and build against it; they propose changes in their done note and never edit this file.
 
@@ -64,13 +64,15 @@ Every session and the cohort carry `provenance`, shown as a badge on every scree
 
 ```json
 {"id": "gait_speed", "side": null, "value": 0.86, "unit": "m/s",
- "ref": {"kind": "norm", "source_id": "bohannon2011", "mean": 1.30, "sd": 0.21, "z": -2.1},
- "status": "out_of_range"}
+ "ref": {"kind": "norm", "source_id": "bohannon2011", "mean": 1.262, "sd": null, "z": null},
+ "cutoff": {"source_id": "ewgsop2", "threshold": 0.8, "op": "<=", "met": false},
+ "status": "in_range"}
 ```
 
 - `side` is `null`, `"left"` or `"right"`.
-- `ref.kind` is `norm` (mean, sd, z), `cutoff` (`{"kind": "cutoff", "source_id": "steadi", "threshold": 12, "op": ">="}`) or `null` when no reference is loaded.
-- `status`: `in_range`, `borderline`, `out_of_range`, `no_reference`, `insufficient`.
+- `ref` is the age and sex norm when one is loaded, `{"kind": "norm", "source_id", "mean", "sd", "z"}`, else `null`. `sd` and `z` are `null` when the source gives no person-level SD (Bohannon 2011 gives confidence intervals only; never derive an SD from them); the screen then shows the mean as context, without a z.
+- `cutoff` is the active guideline cut-off for the metric, `{"source_id", "threshold", "op", "met"}`, else `null`. A metric can have both a norm and a cut-off; neither replaces the other.
+- `status`, first match wins: `insufficient` (QC failed); `out_of_range` (cut-off met, or z beyond 2.0 in the bad direction); `borderline` (z between 1.5 and 2.0 in the bad direction); `in_range` (a z or a cut-off exists and neither fired); `no_reference` (no z and no cut-off).
 
 ### Flag
 
@@ -87,7 +89,7 @@ Every session and the cohort carry `provenance`, shown as a badge on every scree
 
 | id | Task | Unit | Side | Bad | Reference |
 |---|---|---|---|---|---|
-| `gait_speed` | gait | m/s | none | low | adult: norm `bohannon2011` and cut-offs `ewgsop2` / `awgs2019`; child: norm `lythgo2009` |
+| `gait_speed` | gait | m/s | none | low | adult: norm `bohannon2011` and cut-offs `ewgsop2` / `awgs2019`; child: norm `voss2020` |
 | `cadence` | gait | steps/min | none | both | norm |
 | `stride_length` | gait | m | L/R | low | norm |
 | `stride_length_h` | gait | stride / height | L/R | low | child norm when available |
@@ -98,7 +100,7 @@ Every session and the cohort carry `provenance`, shown as a badge on every scree
 | `knee_rom` | gait | deg | L/R | low | none in v1 |
 | `heel_first_share` | gait | % of strides | L/R | low | NODAL rule (toe-walking pattern) |
 | `tug_time` | tug | s | none | high | cut-off `steadi`; norm `bohannon2006tug` |
-| `sts5_time` | sts5 | s | none | high | cut-offs `ewgsop2` / `awgs2019`; norm `bohannon2006sts` |
+| `sts5_time` | sts5 | s | none | high | cut-offs `ewgsop2` / `awgs2019`; norm `bohannon2010sts` |
 | `sls_time` | sls | s | L/R | low | norm `springer2007` |
 | `tandem_steps` | tandem | steps of 10 | none | low | none in v1 (shown, not flagged) |
 | `hop_count` | hop | hops | L/R | low | none in v1 (shown, not flagged) |
@@ -156,4 +158,4 @@ The first match wins. It is always a suggestion; the clinician chooses.
 
 `data/cutoffs.csv` columns: `source_id, metric, group, op, threshold, unit, meaning, table_ref, status`, same status values.
 
-`data/sources.json`: `{"<source_id>": {"citation": "", "doi_or_url": "", "used_for": "", "verified": false}}`. Expected ids: `bohannon2011`, `lythgo2009`, `bohannon2006tug`, `bohannon2006sts`, `springer2007`, `steadi`, `ewgsop2`, `awgs2019`, `perera2006`, `nodal-rule`.
+`data/sources.json`: `{"<source_id>": {"citation": "", "doi_or_url": "", "used_for": "", "verified": false}}`. Expected ids: `bohannon2011`, `voss2020`, `bohannon2006tug`, `bohannon2010sts`, `springer2007`, `steadi`, `ewgsop2`, `awgs2019`, `perera2006`, `nodal-rule`.
