@@ -1,0 +1,2 @@
+# Optional. scripts/ai_texts.py --run only. The app image does not install this file.
+google-genai
