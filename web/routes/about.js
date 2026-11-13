@@ -39,13 +39,7 @@ export async function render(root, ctx) {
   const slot = el("p", "about-text", t("about.method.engine"));
   slot.dataset.slot = "about.method.engine";
   method.append(slot);
-  const side = el("div", "about-col");
-  const assume = el("div", "warn amb");
-  assume.append(el("span", "mono", t("about.h.assumptions")), el("p", "", t("about.assumptions")));
-  const limits = el("div", "warn");
-  limits.append(el("span", "mono", t("about.h.limitations")), el("p", "", t("about.limitations")));
-  side.append(assume, limits);
-  body.append(method, side);
+  body.append(method);
 
   const src = el("section", "ov-roster");
   src.append(el("p", "mono k", t("about.h.sources")));
