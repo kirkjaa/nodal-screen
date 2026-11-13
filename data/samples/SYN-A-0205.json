@@ -735,6 +735,9 @@
   ],
   "ai_texts": {},
   "replay": {
-    "gait": "data/replay/SYN-A-0205.json"
+    "gait": "data/replay/SYN-A-0205.json",
+    "tug": "data/replay/SYN-A-0205-tug.json",
+    "sts5": "data/replay/SYN-A-0205-sts5.json",
+    "sls": "data/replay/SYN-A-0205-sls.json"
   }
 }

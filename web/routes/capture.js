@@ -1,10 +1,9 @@
-// Capture console, laid out like the NODAL M1 emulator console: a rig panel,
-// four camera tiles, a record panel with the clips, and an event log.
-// It is a simulation: no camera is connected. The tiles show the stored
-// synthetic take (data/replay) through four virtual pinhole cameras; timed
-// tests show their stored times. Nothing here measures or flags anything.
+// Capture console, laid out and behaving like the NODAL M1 emulator console:
+// a rig panel, four live camera tiles, a record panel with the clips, and an
+// event log. It is a simulation until real cameras are connected: the tiles
+// show each task's stored synthetic take (data/replay) through four virtual
+// pinhole cameras. Nothing here measures or flags anything.
 import { loadIndex, loadSession } from "../lib/data.js";
-import { loadReplay } from "../lib/replay.js";
 
 const SVG = "http://www.w3.org/2000/svg";
 const LEFT = new Set([5, 7, 9, 11, 13, 15, 17, 18, 19]);
@@ -15,6 +14,7 @@ const BONES = [
 ];
 const W = 320;
 const H = 180;
+const SPEEDS = [1, 2, 4];
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -43,7 +43,17 @@ function metric(session, id, side = null) {
   return null;
 }
 
-// A virtual pinhole camera looking at the walkway.
+async function loadJson(src) {
+  if (!src) return null;
+  try {
+    const res = await fetch(src);
+    return res.ok ? res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+// A virtual pinhole camera looking at the task area.
 function camera(pos, target, focal) {
   const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -60,51 +70,65 @@ function camera(pos, target, focal) {
   };
 }
 
-function makeTile(name, project, span, t) {
+function makeTile(name, t) {
   const tile = el("figure", "cap-tile");
   const head = el("div", "cap-tile-h");
-  head.append(el("span", "mono", name), el("span", "mono cap-badge", t("cap.sim")));
+  const badge = el("span", "mono cap-badge", t("cap.live"));
+  head.append(el("span", "mono", name), badge);
   const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "cap-svg", role: "img" });
   svgEl("title", {}, svg).textContent = `${name}: ${t("cap.tile.title")}`;
   const grid = svgEl("g", { class: "cap-grid" }, svg);
-  for (let x = span[0]; x <= span[1]; x += 500) {
-    const a = project([x, -1500, 0]); const b = project([x, 1500, 0]);
-    if (a && b) svgEl("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, grid);
-  }
-  for (let y = -1500; y <= 1500; y += 500) {
-    const a = project([span[0], y, 0]); const b = project([span[1], y, 0]);
-    if (a && b) svgEl("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, grid);
-  }
   const body = svgEl("g", {}, svg);
   svgEl("text", { x: 6, y: 12, class: "cap-ov" }, svg).textContent = name;
   const stamp = svgEl("text", { x: 6, y: 22, class: "cap-ov" }, svg);
+  const rec = svgEl("text", { x: W - 6, y: 14, class: "cap-rec-ov", "text-anchor": "end" }, svg);
   const foot = el("figcaption", "mono cap-tile-f");
   tile.append(head, svg, foot);
+  let project = null;
 
-  function draw(frame, index, total) {
+  function frame(projectFn, span) {
+    project = projectFn;
+    grid.replaceChildren();
+    for (let x = span[0]; x <= span[1]; x += 500) {
+      const a = project([x, -1500, 0]); const b = project([x, 1500, 0]);
+      if (a && b) svgEl("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, grid);
+    }
+    for (let y = -1500; y <= 1500; y += 500) {
+      const a = project([span[0], y, 0]); const b = project([span[1], y, 0]);
+      if (a && b) svgEl("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, grid);
+    }
+  }
+
+  function draw(points, seq) {
     body.replaceChildren();
-    if (frame) {
+    if (points && project) {
       for (const [a, b] of BONES) {
-        const p = frame[a] && project(frame[a]);
-        const q = frame[b] && project(frame[b]);
+        const p = points[a] && project(points[a]);
+        const q = points[b] && project(points[b]);
         if (!p || !q) continue;
         const side = LEFT.has(a) && LEFT.has(b) ? "is-left" : RIGHT.has(a) && RIGHT.has(b) ? "is-right" : "is-centre";
         svgEl("line", { x1: p[0], y1: p[1], x2: q[0], y2: q[1], class: `cap-bone ${side}` }, body);
       }
-      const sh = frame[5] && frame[6] ? frame[5].map((v, i) => (v + frame[6][i]) / 2) : null;
-      const hp = frame[11] && frame[12] ? frame[11].map((v, i) => (v + frame[12][i]) / 2) : null;
+      const mid = (i, j) => (points[i] && points[j] ? points[i].map((v, k) => (v + points[j][k]) / 2) : null);
+      const sh = mid(5, 6); const hp = mid(11, 12);
       if (sh && hp) {
         const p = project(sh); const q = project(hp);
         if (p && q) svgEl("line", { x1: p[0], y1: p[1], x2: q[0], y2: q[1], class: "cap-bone is-centre" }, body);
       }
-      if (frame[0]) {
-        const h = project(frame[0]);
-        if (h) svgEl("circle", { cx: h[0], cy: h[1], r: Math.max(2, (95 * 260) / h[2]), class: "cap-head" }, body);
+      if (points[0]) {
+        const h = project(points[0]);
+        if (h) svgEl("circle", { cx: h[0], cy: h[1], r: Math.max(2, (95 * 300) / h[2]), class: "cap-head" }, body);
       }
     }
-    stamp.textContent = total ? `seq ${String(index + 1).padStart(4, "0")} / ${total}` : "";
+    stamp.textContent = seq;
   }
-  return { tile, draw, foot };
+
+  function recording(on, text) {
+    badge.textContent = on ? t("cap.rec") : t("cap.live");
+    badge.classList.toggle("is-rec", on);
+    rec.textContent = on ? `● ${text}` : "";
+  }
+  return { tile, frame, draw, foot, recording };
 }
 
 export async function render(root, ctx) {
@@ -112,20 +136,19 @@ export async function render(root, ctx) {
   root.classList.add("wide");
   const wantChild = (location.hash || "") === "#/capture/child";
   const pids = ((await loadIndex().catch(() => ({ pids: [] }))).pids) || [];
-  const sessions = (await Promise.all(pids.map((p) => loadSession(p).catch(() => null))));
+  const sessions = await Promise.all(pids.map((p) => loadSession(p).catch(() => null)));
   const people = pids.map((pid, i) => ({ pid, session: sessions[i] })).filter((p) => p.session);
   if (!people.length) {
     root.replaceChildren(el("h1", "", t("heading.capture")), el("p", "", t("capture.offline")));
     return;
   }
 
-  // Header
   const head = el("div", "rp-head");
   const hl = el("div");
   hl.append(el("h1", "", t("cap.title")), el("p", "mono crumb", t("cap.crumb")));
   const chips = el("div", "chips");
   const chip = (text, cls = "") => { const c = el("span", `chip mono ${cls}`); c.append(el("i"), document.createTextNode(text)); return c; };
-  chips.append(chip(t("cap.chip.cams")), chip(t("cap.chip.fps")), chip(t("capture.offline"), "sample"));
+  chips.append(chip(t("cap.chip.cams")), chip(t("capture.offline"), "sample"));
   head.append(hl, chips);
 
   const grid = el("div", "cap");
@@ -135,14 +158,14 @@ export async function render(root, ctx) {
   grid.append(rig, main, events);
   root.replaceChildren(head, grid);
 
-  // Event log
   const log = el("div", "cap-log mono");
   log.dir = "ltr";
   events.append(el("p", "mono k", t("cap.events")), log);
   const say = (text, cls = "") => {
     const line = el("p", cls);
     line.append(el("span", "faint", `${clock()}  `), document.createTextNode(text));
-    log.prepend(line);
+    log.append(line);
+    log.scrollTop = log.scrollHeight;
   };
 
   // Rig panel
@@ -156,9 +179,8 @@ export async function render(root, ctx) {
   });
   const firstChild = people.findIndex((p) => p.session.participant?.group === "child");
   if (wantChild && firstChild >= 0) pick.value = String(firstChild);
-  pickBlk.append(pick);
   const who = el("dl", "qc cap-who");
-  pickBlk.append(who);
+  pickBlk.append(pick, who);
   const protoBlk = el("div", "blk");
   protoBlk.append(el("p", "mono k", t("cap.protocol")));
   const steps = el("ol", "cap-steps");
@@ -168,53 +190,72 @@ export async function render(root, ctx) {
   rec.type = "button";
   const reset = el("button", "btn mono", t("cap.reset"));
   reset.type = "button";
-  ctl.append(rec, reset, el("p", "mono faint", t("cap.note")));
+  const speed = el("select", "rp-select");
+  speed.setAttribute("aria-label", t("cap.speed"));
+  for (const s of SPEEDS) {
+    const o = el("option", "", `${s}x`);
+    o.value = String(s);
+    if (s === 2) o.selected = true;
+    speed.append(o);
+  }
+  const speedLabel = el("label", "mono k cap-speed", `${t("cap.speed")} `);
+  speedLabel.append(speed);
+  ctl.append(rec, reset, speedLabel, el("p", "mono faint", t("cap.note")));
   rig.append(pickBlk, protoBlk, ctl);
 
-  // Tiles
+  // Tiles and clips
   const tiles = el("div", "cap-tiles");
   tiles.dir = "ltr";
+  const cams = [0, 1, 2, 3].map((i) => makeTile(`m1-cam${i}`, t));
+  for (const c of cams) tiles.append(c.tile);
   const firePanel = el("div", "cap-fire");
   const clips = el("table", "cap-clips");
   const ready = el("div", "cap-ready");
-  main.append(tiles, firePanel);
   firePanel.append(el("p", "mono k", t("cap.clips")), clips, ready);
+  main.append(tiles, firePanel);
 
   let current = null;
-  let cams = [];
-  let replay = null;
-  let playing = false;
-  let done = new Set();
+  let takes = {};
+  let done = [];
+  let mode = "live";      // live | rec
+  let task = null;
+  let f = 0;
+  let acc = 0;
+  let last = null;
+  let clipNo = 0;
 
   function stepList(session) {
     const child = session.participant?.group === "child";
     const list = [
-      { key: "walk", label: t("capture.step.walk"), clip: "walk_10m" },
-      { key: "tug", label: t("capture.step.tug"), clip: "tug", value: metric(session, "tug_time") },
-      { key: "sts", label: t("capture.step.sts"), clip: "sts5", value: metric(session, "sts5_time") },
-      { key: "sls", label: t("capture.step.sls"), clip: "sls", value: metric(session, "sls_time", "left") },
+      { key: "walk", label: t("capture.step.walk"), take: "gait", value: metric(session, "gait_speed") },
+      { key: "tug", label: t("capture.step.tug"), take: "tug", value: metric(session, "tug_time") },
+      { key: "sts", label: t("capture.step.sts"), take: "sts5", value: metric(session, "sts5_time") },
+      { key: "sls", label: t("capture.step.sls"), take: "sls", value: metric(session, "sls_time", "left") },
     ];
     if (child) {
-      list.push({ key: "tandem", label: t("capture.step.tandem"), clip: "tandem", absent: true });
-      list.push({ key: "hop", label: t("capture.step.hop"), clip: "hop", absent: true });
+      list.push({ key: "tandem", label: t("capture.step.tandem"), absent: true });
+      list.push({ key: "hop", label: t("capture.step.hop"), absent: true });
     }
     return list;
   }
 
+  function nextStep() {
+    return stepList(current.session).find((s) => !s.absent && !done.some((d) => d.key === s.key));
+  }
+
   function drawSteps() {
     steps.replaceChildren();
-    const list = stepList(current.session);
-    const next = list.find((s) => !s.absent && !done.has(s.key));
-    for (const s of list) {
-      const li = el("li", s.absent ? "is-absent" : done.has(s.key) ? "is-done" : next === s ? "is-next" : "");
+    const next = nextStep();
+    for (const s of stepList(current.session)) {
+      const isDone = done.some((d) => d.key === s.key);
+      const isNext = next && next.key === s.key;
+      const li = el("li", s.absent ? "is-absent" : isDone ? "is-done" : isNext ? "is-next" : "");
       li.append(el("span", "", s.label));
-      const status = s.absent ? t("cap.absent") : done.has(s.key) ? t("cap.done") : next === s ? t("cap.next") : t("cap.pending");
-      li.append(el("span", "mono", status));
+      li.append(el("span", "mono", s.absent ? t("cap.absent") : isDone ? t("cap.done") : isNext ? (mode === "rec" ? t("cap.recording") : t("cap.next")) : t("cap.pending")));
       steps.append(li);
     }
-    rec.disabled = !next || playing;
+    rec.disabled = !next || mode === "rec";
     rec.textContent = next ? `${t("cap.record")} · ${next.label}` : t("cap.all");
-    return next;
   }
 
   function drawClips() {
@@ -222,12 +263,9 @@ export async function render(root, ctx) {
     const headRow = el("tr");
     for (const k of ["cap.col.clip", "cap.col.task", "cap.col.frames", "cap.col.time", "cap.col.cams"]) headRow.append(el("th", "mono", t(k)));
     clips.append(headRow);
-    for (const s of stepList(current.session)) {
-      if (!done.has(s.key)) continue;
+    for (const d of done) {
       const tr = el("tr");
-      const frames = s.key === "walk" && replay ? replay.frames.length : "–";
-      const time = s.key === "walk" && replay ? `${(replay.frames.length / (replay.fps || 30)).toFixed(2)} s` : (s.value?.value != null ? `${s.value.value} s` : "–");
-      for (const v of [s.clip, s.label, String(frames), time, "4/4"]) tr.append(el("td", "", v));
+      for (const v of [d.clip, d.label, String(d.frames), `${d.seconds.toFixed(2)} s`, "4/4"]) tr.append(el("td", "", v));
       clips.append(tr);
     }
   }
@@ -252,28 +290,40 @@ export async function render(root, ctx) {
     }
   }
 
-  async function choose(index) {
-    playing = false;
-    current = people[index];
-    done = new Set();
-    replay = null;
-    try { replay = await loadReplay(current.session); } catch { replay = null; }
-    const frames = replay?.frames || [];
-    const xs = frames.flat().filter(Boolean).map((p) => p[0]);
+  // Point the four cameras at the area the task's take covers.
+  function aim(take) {
+    const pts = (take?.frames || []).flat().filter(Boolean);
+    const xs = pts.map((p) => p[0]);
     const x0 = xs.length ? Math.min(...xs) : 0;
     const x1 = xs.length ? Math.max(...xs) : 4000;
     const xm = (x0 + x1) / 2;
+    const half = Math.max((x1 - x0) / 2, 600);
     const target = [xm, 0, 800];
-    const focal = W * 0.95;
-    const layout = [[xm - 3000, -3600, 1500], [xm + 3000, -3600, 1500], [xm + 3000, 3600, 1500], [xm - 3000, 3600, 1500]];
-    tiles.replaceChildren();
-    cams = layout.map((pos, i) => {
-      const tile = makeTile(`m1-cam${i}`, camera(pos, target, focal), [Math.floor((x0 - 1000) / 500) * 500, Math.ceil((x1 + 1000) / 500) * 500], t);
-      tiles.append(tile.tile);
-      tile.foot.textContent = `${t("cap.tile.idle")}`;
-      tile.draw(frames[0] || null, 0, 0);
-      return tile;
-    });
+    const back = half + 2600;
+    const layout = [[xm - back, -3600, 1500], [xm + back, -3600, 1500], [xm + back, 3600, 1500], [xm - back, 3600, 1500]];
+    const span = [Math.floor((x0 - 1000) / 500) * 500, Math.ceil((x1 + 1000) / 500) * 500];
+    layout.forEach((pos, i) => cams[i].frame(camera(pos, target, W * 0.95), span));
+  }
+
+  function setTask(step) {
+    task = step;
+    f = 0;
+    acc = 0;
+    aim(step ? takes[step.take] : null);
+    for (const c of cams) {
+      c.recording(false);
+      c.foot.textContent = step ? `${t("cap.tile.live")} · ${step.label}` : t("cap.tile.idle");
+    }
+  }
+
+  async function choose(index) {
+    mode = "live";
+    current = people[index];
+    done = [];
+    clipNo = 0;
+    const r = current.session.replay || {};
+    const loaded = await Promise.all(["gait", "tug", "sts5", "sls"].map((k) => loadJson(r[k])));
+    takes = { gait: loaded[0], tug: loaded[1], sts5: loaded[2], sls: loaded[3] };
     drawWho();
     drawSteps();
     drawClips();
@@ -281,11 +331,25 @@ export async function render(root, ctx) {
     log.replaceChildren();
     say(`${t("cap.ev.select")} ${current.pid} (${current.session.participant?.display_name || ""})`);
     say(t("cap.ev.armed"), "faint");
+    setTask(nextStep());
   }
 
-  function finish(step) {
-    done.add(step.key);
-    for (let i = 0; i < cams.length; i += 1) say(`REC stop  m1-cam${i}  ${step.clip}`);
+  function startRecording() {
+    const step = nextStep();
+    if (!step || mode === "rec") return;
+    const take = takes[step.take];
+    clipNo += 1;
+    step.clip = `clip_${String(clipNo).padStart(3, "0")}`;
+    setTask(step);
+    mode = "rec";
+    drawSteps();
+    say(`${t("cap.ev.trigger")} ${clipNo} (${t("cap.sim").toLowerCase()})`, "faint");
+    for (let i = 0; i < 4; i += 1) say(`REC start m1-cam${i}  ${step.clip}  ${step.label}`);
+    if (!take) finishRecording(step, 0, 0);
+  }
+
+  function finishRecording(step, frames, seconds) {
+    for (let i = 0; i < 4; i += 1) say(`REC stop  m1-cam${i}  ${step.clip}  ${frames} ${t("cap.ev.frames")}  ${seconds.toFixed(2)} s`);
     say(`${step.clip}: ${t("cap.ev.complete")} 4/4`, "grn");
     if (step.key === "walk") {
       const qc = current.session.qc || {};
@@ -293,12 +357,14 @@ export async function render(root, ctx) {
     } else if (step.value?.value != null) {
       say(`${step.label}: ${step.value.value} s (${t("cap.ev.window")})`);
     }
-    playing = false;
-    const next = drawSteps();
+    done.push({ key: step.key, clip: step.clip, label: step.label, frames, seconds });
+    mode = "live";
+    drawSteps();
     drawClips();
+    const next = nextStep();
+    setTask(next || step);
     if (!next) {
       say(t("cap.ev.report"), "grn");
-      ready.replaceChildren();
       const card = el("div", `warn ${current.session.qc?.status === "insufficient" ? "" : "grn"}`);
       card.append(el("span", "mono", t(`pathway.${current.session.suggested_pathway?.code || ""}`)));
       const link = el("a", "", t("cap.open"));
@@ -306,40 +372,45 @@ export async function render(root, ctx) {
       const p = el("p");
       p.append(link);
       card.append(p);
-      ready.append(card);
+      ready.replaceChildren(card);
     }
   }
 
-  function record() {
-    const step = drawSteps();
-    if (!step || playing) return;
-    playing = true;
-    rec.disabled = true;
-    for (let i = 0; i < cams.length; i += 1) say(`REC start m1-cam${i}  ${step.clip}`);
-    const frames = replay?.frames || [];
-    if (step.key !== "walk" || !frames.length) {
-      for (const c of cams) c.foot.textContent = `${step.clip} · ${t("cap.tile.timed")}`;
-      setTimeout(() => { if (root.isConnected && playing) finish(step); }, 900);
-      return;
-    }
-    const fps = replay.fps || 30;
-    const start = performance.now();
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const tick = (now) => {
-      if (!root.isConnected || !playing) return;
-      const i = reduced ? frames.length - 1 : Math.min(frames.length - 1, Math.floor(((now - start) / 1000) * fps));
-      for (const c of cams) {
-        c.draw(frames[i], i, frames.length);
-        c.foot.textContent = `720p · ${step.clip} · ${i + 1}/${frames.length}`;
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  function tick(now) {
+    if (!root.isConnected) return;
+    const take = task ? takes[task.take] : null;
+    if (take && take.frames?.length) {
+      const fps = take.fps || 30;
+      const n = take.frames.length;
+      if (last != null && !(reduced && mode === "live")) {
+        acc += ((now - last) / 1000) * fps * (mode === "rec" ? Number(speed.value) : 1);
+        const stepN = Math.floor(acc);
+        if (stepN > 0) {
+          acc -= stepN;
+          if (mode === "rec") {
+            f = Math.min(f + stepN, n - 1);
+          } else {
+            f = (f + stepN) % n;
+          }
+        }
       }
-      if (i >= frames.length - 1) finish(step);
-      else requestAnimationFrame(tick);
-    };
+      for (const c of cams) {
+        c.draw(take.frames[f], `seq ${String(f + 1).padStart(4, "0")} / ${n}`);
+        if (mode === "rec") {
+          c.recording(true, `${(f / fps).toFixed(1)} s`);
+          c.foot.textContent = `${t("cap.rec")} · ${task.clip} · ${f + 1}/${n}`;
+        }
+      }
+      if (mode === "rec" && f >= n - 1) finishRecording(task, n, n / fps);
+    }
+    last = now;
     requestAnimationFrame(tick);
   }
 
-  rec.addEventListener("click", record);
+  rec.addEventListener("click", startRecording);
   reset.addEventListener("click", () => choose(Number(pick.value)));
   pick.addEventListener("change", () => choose(Number(pick.value)));
   await choose(Number(pick.value));
+  requestAnimationFrame(tick);
 }

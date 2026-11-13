@@ -707,6 +707,9 @@
   "history": [],
   "ai_texts": {},
   "replay": {
-    "gait": "data/replay/SYN-C-0101.json"
+    "gait": "data/replay/SYN-C-0101.json",
+    "tug": "data/replay/SYN-C-0101-tug.json",
+    "sts5": "data/replay/SYN-C-0101-sts5.json",
+    "sls": "data/replay/SYN-C-0101-sls.json"
   }
 }

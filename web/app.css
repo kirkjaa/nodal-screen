@@ -344,3 +344,8 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 @media (max-width:640px){.about-steps{grid-template-columns:1fr}.about-body,.case-wrap{padding-inline:16px}.case{grid-template-columns:1fr;gap:8px}.sw-note{padding-inline:16px}}
 
 @media (max-width:640px){.rp-head .chip{white-space:normal;max-width:100%}.rp-head .chips{width:100%}}
+
+.cap-badge.is-rec{border-color:var(--live) !important;color:var(--live) !important}
+.cap-rec-ov{font:8px var(--font-mono);fill:var(--live)}
+.cap-speed{display:inline-flex;align-items:center;gap:6px;margin:0}
+.cap-log{max-height:62vh}

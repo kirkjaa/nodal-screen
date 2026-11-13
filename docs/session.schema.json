@@ -145,7 +145,19 @@
       "properties": {
         "gait": {
           "type": "string",
-          "pattern": "^data/replay/[A-Z0-9-]+\\.json$"
+          "pattern": "^data/replay/[A-Z0-9-]+(-[a-z0-9]+)?\\.json$"
+        },
+        "tug": {
+          "type": "string",
+          "pattern": "^data/replay/[A-Z0-9-]+(-[a-z0-9]+)?\\.json$"
+        },
+        "sts5": {
+          "type": "string",
+          "pattern": "^data/replay/[A-Z0-9-]+(-[a-z0-9]+)?\\.json$"
+        },
+        "sls": {
+          "type": "string",
+          "pattern": "^data/replay/[A-Z0-9-]+(-[a-z0-9]+)?\\.json$"
         }
       },
       "additionalProperties": false

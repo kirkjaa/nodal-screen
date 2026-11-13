@@ -229,6 +229,9 @@
   "history": [],
   "ai_texts": {},
   "replay": {
-    "gait": "data/replay/SYN-C-0104.json"
+    "gait": "data/replay/SYN-C-0104.json",
+    "tug": "data/replay/SYN-C-0104-tug.json",
+    "sts5": "data/replay/SYN-C-0104-sts5.json",
+    "sls": "data/replay/SYN-C-0104-sls.json"
   }
 }

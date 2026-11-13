@@ -337,5 +337,12 @@
   "source.bohannon2006tug": "Bohannon 2006",
   "source.bohannon2010sts": "Bohannon 2010",
   "source.springer2007": "Springer 2007",
-  "source.voss2020": "Voss 2020"
+  "source.voss2020": "Voss 2020",
+  "cap.live": "Sim live",
+  "cap.rec": "REC",
+  "cap.speed": "Speed",
+  "cap.recording": "recording",
+  "cap.tile.live": "live",
+  "cap.ev.trigger": "trigger · edge",
+  "cap.ev.frames": "frames"
 }

@@ -337,5 +337,12 @@
   "source.bohannon2006tug": "Bohannon 2006",
   "source.bohannon2010sts": "Bohannon 2010",
   "source.springer2007": "Springer 2007",
-  "source.voss2020": "Voss 2020"
+  "source.voss2020": "Voss 2020",
+  "cap.live": "بث محاكى",
+  "cap.rec": "تسجيل",
+  "cap.speed": "السرعة",
+  "cap.recording": "قيد التسجيل",
+  "cap.tile.live": "مباشر",
+  "cap.ev.trigger": "إشارة · حافة",
+  "cap.ev.frames": "إطارات"
 }

@@ -1,4 +1,4 @@
-# NODAL Screen data contract (v1.4, 13 Nov 2026: gait replay file; v1.3 NODAL rules fill the metric `cutoff`; v1.2 consent type, kit, QC, curves, metric definitions)
+# NODAL Screen data contract (v1.5, 14 Nov 2026: replays for the timed tests; v1.4 gait replay file; v1.3 NODAL rules fill the metric `cutoff`; v1.2 consent type, kit, QC, curves, metric definitions)
 
 Owner: Claude Code. Cursor agents read it and build against it; they propose changes in their done note and never edit this file.
 
@@ -61,7 +61,7 @@ Every session and the cohort carry `provenance`, shown as a badge on every scree
 - `qc.keypoint_confidence` is the mean tracking confidence of the shoulders, hips, knees and ankles over the measured walk. `qc.calib_residual_px` is `null` when no camera was involved (every synthetic session).
 - `curves` arrays have 101 points (0 to 100 % of the gait cycle, heel strike to heel strike), degrees, the mean over the person's strides. Curve names: `hip_flexion`, `knee_flexion`; `ankle_dorsiflexion` and `hip_adduction` are absent in v1 (not reliable from 17 body points). `norm_mean` and `norm_sd` are empty arrays when no source for a reference band is loaded, which is every curve in v1; the screen then draws the person's curves without a band.
 - Gait metrics are measured over the middle 10 m of the walk (2 m to 12 m), as in a 10 m walk test.
-- `replay` points to movement the report can play back: `{"gait": "data/replay/<pid>.json"}`, or absent. The file is the same take the gait analysis measured, never a reconstruction from the curves:
+- `replay` points to movement the screens can play back: `{"gait": "data/replay/<pid>.json", "tug": "data/replay/<pid>-tug.json", "sts5": ..., "sls": ...}`, or absent. `tug`, `sts5` and `sls` are the whole synthetic clip of that task at 15 fps (same format, empty `events`), used by the capture console. The file is the same take the gait analysis measured, never a reconstruction from the curves:
 
 ```json
 {"schema": "nodal-screen/replay@1", "provenance": "synthetic", "pid": "SYN-A-0201", "visit_id": "V1", "task": "gait",
