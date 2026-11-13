@@ -148,5 +148,12 @@
   "about.method.engine": "Method details: written by Claude.",
   "about.assumptions": "Reference values come from the sources below. Reference values marked placeholder are pending verification. Complementary suppression is not applied.",
   "about.limitations": "The product measures and flags. It is not yet validated. Every person in this prototype is synthetic. Review decisions stay in this browser. A letter drafted from the measurements is not sent until a clinician approves it.",
-  "about.sources.missing": "The source list could not be loaded."
+  "about.sources.missing": "The source list could not be loaded.",
+  "ai.heading": "Draft texts",
+  "ai.none": "No letter or brief is stored.",
+  "ai.drafted": "Drafted by AI from the measurements. A clinician approves before anything is sent.",
+  "ai.ask": "Ask for a draft",
+  "ai.family": "Family letter",
+  "ai.brief": "Clinician brief",
+  "ai.error": "The request did not complete."
 }
