@@ -73,6 +73,15 @@ def _flags(session: dict) -> list[dict]:
     return rows
 
 
+def pathway_label(code: str | None) -> str | None:
+    """The English pathway label the screens show, so a letter never quotes a code."""
+    if not code:
+        return None
+    path = Path(__file__).resolve().parents[1] / "web" / "i18n" / "en.json"
+    labels = json.loads(path.read_text(encoding="utf-8"))
+    return labels.get(f"pathway.{code}", code)
+
+
 def facts(session: dict) -> dict:
     """Only the fields a letter may use. No video, paths, or ids."""
     participant = session.get("participant") or {}
@@ -90,6 +99,7 @@ def facts(session: dict) -> dict:
             "notes": list(qc.get("notes") or []),
         },
         "suggested_pathway": session.get("suggested_pathway"),
+        "suggested_pathway_label": pathway_label((session.get("suggested_pathway") or {}).get("code")),
     }
     if session.get("review"):
         out["review"] = session["review"]

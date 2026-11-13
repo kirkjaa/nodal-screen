@@ -14,7 +14,7 @@ from scripts import ai_texts
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED = {
     "display_name", "group", "age_band", "sex", "metrics", "flags",
-    "qc", "suggested_pathway", "review",
+    "qc", "suggested_pathway", "suggested_pathway_label", "review",
 }
 METRIC_KEYS = {
     "id", "side", "value", "unit", "status", "norm_mean", "norm_z", "cutoff",
