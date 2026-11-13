@@ -14,10 +14,11 @@ Cards marked *(card later)* are written by Claude after the cards before them ar
 | T05 | Cursor | Clinician review queue, pathway choice, FHIR R4 preview | T01 | draft |
 | T06 | Cursor | Enrolment and consent, capture protocol, history view, About page draft | T01 | draft |
 | C05 | Claude | Participant report page | T01, C02 | |
-| T07 | Cursor | Server API (stored AI texts, capped live AI behind a flag), Dockerfile, `deploy.ps1` modeled on CellPilot | T01 | draft |
+| T07 | Cursor | Server API (stored AI texts, capped live AI behind a flag), Dockerfile, `deploy.ps1` modeled on CellPilot (C08's build half) | T01 | ready |
 | C06 | Claude | Frontend polish pass over every screen, EN and AR, desktop and phone | T04 to T06 | |
-| C07 | Claude | AI texts for the featured participants (paid, Kirk approves) | C02 | |
-| C08 | Claude | Deploy to Cloud Run (paid, Kirk approves) | T07, C06 | |
+| T10 | Cursor | AI text generator: prompts, checks, dry run with cost estimate, fake-client tests; never a paid call | T01 | ready |
+| C07 | Claude | Run T10 for real on the featured sessions (paid, Kirk approves the quoted cost) | C02, T10 | |
+| C08 | Claude | Deploy to Cloud Run with T07's `deploy.ps1` (paid, Kirk approves) | T07, C06 | |
 | T08 | Cursor | Playwright recording script for the film, full screenshot set | C08 | *(card later)* |
 | T09 | Cursor | README and `docs/TECHNICAL.md` drafts from Claude's outline | C02 | *(card later)* |
 | V1 | Cursor | Film: copy `D:\strain-watch-out\hf` structure, three storylines | T01 | *(card later)* |
