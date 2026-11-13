@@ -80,5 +80,7 @@
   "source.awgs2019": "AWGS 2019",
   "source.steadi": "STEADI",
   "source.perera2006": "Perera 2006",
-  "source.nodal-rule": "NODAL screening rule"
+  "source.nodal-rule": "NODAL screening rule",
+  "a11y.skip": "Skip to main content",
+  "a11y.navigation": "Main navigation"
 }

@@ -34,6 +34,7 @@ function applyDocument() {
     node.textContent = t(node.dataset.i18n);
   }
   const nav = document.querySelector("#nav");
+  nav.setAttribute("aria-label", t("a11y.navigation"));
   nav.replaceChildren();
   const hash = location.hash || "#/";
   for (const [href, key] of NAV) {
@@ -78,5 +79,6 @@ document.querySelector("#lang").addEventListener("click", () => {
   storeLang(lang);
   draw();
 });
+document.querySelector("#skip").addEventListener("click", () => document.querySelector("#view").focus());
 window.addEventListener("hashchange", draw);
 draw();

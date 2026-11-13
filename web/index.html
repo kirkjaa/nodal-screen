@@ -9,12 +9,13 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
+<button class="skip-link" id="skip" data-i18n="a11y.skip" type="button"></button>
 <header class="top">
   <div class="brand" data-i18n="product"></div>
   <nav class="nav" id="nav"></nav>
   <button id="lang" type="button"></button>
 </header>
-<main id="view"></main>
+<main id="view" tabindex="-1"></main>
 <p class="note" data-i18n="footer.note"></p>
 <script type="module" src="app.js"></script>
 </body>

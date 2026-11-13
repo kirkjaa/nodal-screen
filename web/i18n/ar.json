@@ -80,5 +80,7 @@
   "source.awgs2019": "AWGS 2019",
   "source.steadi": "STEADI",
   "source.perera2006": "Perera 2006",
-  "source.nodal-rule": "قاعدة فحص NODAL"
+  "source.nodal-rule": "قاعدة فحص NODAL",
+  "a11y.skip": "انتقل إلى المحتوى الرئيسي",
+  "a11y.navigation": "التنقل الرئيسي"
 }
