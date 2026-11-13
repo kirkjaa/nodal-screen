@@ -64,7 +64,9 @@ export async function renderAiTexts(session, lang) {
     }
     try {
       const res = await fetch(`/api/ai/${encodeURIComponent(pid)}`, { method: "POST" });
-      out.textContent = await res.text();
+      // A static copy (GitHub Pages) has no API: show the plain message, never a host's error page.
+      const type = res.headers.get("content-type") || "";
+      out.textContent = res.ok && type.includes("json") ? await res.text() : t("ai.error");
     } catch {
       out.textContent = t("ai.error");
     }
