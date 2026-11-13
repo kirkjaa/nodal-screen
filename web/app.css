@@ -68,11 +68,69 @@ table {
   border-collapse: collapse;
   font-size: 0.92rem;
 }
+.table-scroll {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  contain: inline-size;
+}
+.metrics {
+  width: max-content;
+  min-width: 100%;
+}
 th, td {
   text-align: start;
   padding: 6px 8px;
   border-block-end: 1px solid var(--rule);
-  overflow-wrap: anywhere;
+}
+.metrics td.value,
+.metrics td.unit,
+.metrics td.value > span,
+.metrics td.unit > span {
+  white-space: nowrap;
+}
+.metrics td.num > span {
+  unicode-bidi: isolate;
+  direction: ltr;
+}
+@media (max-width: 480px) {
+  .table-scroll {
+    overflow-x: visible;
+    contain: none;
+  }
+  .metrics {
+    width: 100%;
+    min-width: 0;
+  }
+  .metrics tr:first-child {
+    display: none;
+  }
+  .metrics tr {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-block-end: 8px;
+    padding: 8px;
+  }
+  .metrics td {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px 12px;
+    border-block-end: 0;
+    padding: 2px 0;
+    min-width: 0;
+  }
+  .metrics td > span {
+    min-width: 0;
+  }
+  .metrics td::before {
+    content: attr(data-label);
+    color: var(--muted);
+  }
 }
 th { color: var(--muted); font-weight: 500; }
 .note {

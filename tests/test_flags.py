@@ -17,7 +17,7 @@ UNITS = {
     "sls_time": "s",
     "step_length_si": "%",
     "step_time_si": "%",
-    "heel_first_share": "%",
+    "heel_first_share": "% of strides",
 }
 
 

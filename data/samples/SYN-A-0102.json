@@ -46,18 +46,21 @@
           "side": null,
           "value": 0.9,
           "unit": "m/s",
+          "status": "insufficient",
           "ref": null,
-          "status": "insufficient"
+          "cutoff": null
         },
         {
           "id": "cadence",
           "side": null,
           "value": 104,
           "unit": "steps/min",
+          "status": "insufficient",
           "ref": null,
-          "status": "insufficient"
+          "cutoff": null
         }
-      ]
+      ],
+      "curves": {}
     },
     "tug": {
       "metrics": [
@@ -66,8 +69,9 @@
           "side": null,
           "value": 13.2,
           "unit": "s",
+          "status": "insufficient",
           "ref": null,
-          "status": "insufficient"
+          "cutoff": null
         }
       ]
     },
@@ -78,8 +82,9 @@
           "side": null,
           "value": 14.0,
           "unit": "s",
+          "status": "insufficient",
           "ref": null,
-          "status": "insufficient"
+          "cutoff": null
         }
       ]
     },
@@ -90,8 +95,9 @@
           "side": "left",
           "value": 3.1,
           "unit": "s",
+          "status": "insufficient",
           "ref": null,
-          "status": "insufficient"
+          "cutoff": null
         }
       ]
     }

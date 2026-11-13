@@ -24,13 +24,15 @@ ALLOW = (
     "not a diagnosis",
     "not yet validated",
     "to be validated",
+    "Sarcopenia: revised European consensus on definition and diagnosis",
+    "Asian Working Group for Sarcopenia: 2019 Consensus Update on Sarcopenia Diagnosis and Treatment",
 )
 PATTERNS = (
     re.compile(r"diagnos(?:e|es|is|ing|tic)", re.I),
     re.compile(r"\bvalidated\b", re.I),
     re.compile(r"clinically proven", re.I),
     re.compile(r"\bcertified\b", re.I),
-    re.compile(r"\bFDA\b"),
+    re.compile(r"\bFDA\b", re.I),
     re.compile(r"CE[- ]mark", re.I),
     re.compile(r"AI[- ]powered", re.I),
     re.compile(r"revolutionary", re.I),
