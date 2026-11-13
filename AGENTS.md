@@ -17,7 +17,7 @@ All data is synthetic. NODAL's gait engine is proprietary and not in this reposi
 ## How a task runs
 
 1. Kirk says "Do T0N". Read `tasks/T0N-*.md` and `docs/CONTRACT.md` first. Do only what the card asks.
-2. Work on a branch named `t0N-<slug>` from `main`. Never commit to `main`, never merge, never push unless Kirk says so.
+2. Work on a branch named `t0N-<slug>` from `main`. Never commit to `main`, never merge, never push. Merging and pushing happen only in the "Merge T0N" step of `tasks/REVIEW-PROTOCOL.md`, after Claude's PASS; a pre-push hook blocks everything else.
 3. Run `python scripts/verify.py` (after T01 exists). It must end with `VERIFY OK`.
 4. Write `tasks/done/T0N.md`, at most 30 lines: what changed (files), the last 10 lines of verify output, screenshot paths, anything not done, questions. Claude reads this note and the diff, so keep it exact.
 5. Commit on the branch with a plain message. Stop.

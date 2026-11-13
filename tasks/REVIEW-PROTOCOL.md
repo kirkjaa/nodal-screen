@@ -27,13 +27,14 @@ Kirk opens a **new** Claude Code session (or `/clear`), sets `/model sonnet` unl
 After Claude's PASS, Kirk pastes into Cursor: **"Merge T0N."** Cursor, in `D:\nodal-screen` on `main`:
 
 ```
-git rebase --onto main 06e5b4a t0N-<slug>      # T01 to T03 only: they started from an older main
-git checkout main && git merge --ff-only t0N-<slug>
+git rebase --onto main 06e5b4a t03-gaitsynth   # T03 only: it started from an older main
+git rebase main t0N-<slug>                      # every other task
+git checkout main; git merge --ff-only t0N-<slug>
 python -m pytest -q
-git push origin main
+$env:NODAL_PUSH_OK = "1"; git push origin main  # a pre-push hook blocks every other push
 ```
 
-Never force-push `main`. If the rebase conflicts, stop and say so.
+**Only this step merges or pushes, and only after Kirk pastes "Merge T0N".** A task chat or a review chat never merges or pushes, even when its work looks finished. Never force-push `main`. If the rebase conflicts, stop and say so.
 
 ## 4. Next cards, drafted by Cursor
 
