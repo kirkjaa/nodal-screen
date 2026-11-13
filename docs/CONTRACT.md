@@ -1,4 +1,4 @@
-# NODAL Screen data contract (v1.2, 13 Nov 2026: v1.1 plus the fields the measured sample sessions fill: consent type, kit, QC, curves, metric definitions)
+# NODAL Screen data contract (v1.3, 13 Nov 2026: NODAL screening rules fill the metric `cutoff`; v1.2 added consent type, kit, QC, curves and metric definitions)
 
 Owner: Claude Code. Cursor agents read it and build against it; they propose changes in their done note and never edit this file.
 
@@ -75,8 +75,8 @@ Every session and the cohort carry `provenance`, shown as a badge on every scree
 
 - `side` is `null`, `"left"` or `"right"`.
 - `ref` is the age and sex norm when one is loaded, `{"kind": "norm", "source_id", "mean", "sd", "z"}`, else `null`. `sd` and `z` are `null` when the source gives no person-level SD (Bohannon 2011 gives confidence intervals only; never derive an SD from them); the screen then shows the mean as context, without a z.
-- `cutoff` is the active guideline cut-off for the metric, `{"source_id", "threshold", "op", "met"}`, else `null`. A metric can have both a norm and a cut-off; neither replaces the other.
-- `status`, first match wins: `insufficient` (QC failed); `out_of_range` (cut-off met, or z beyond 2.0 in the bad direction); `borderline` (z between 1.5 and 2.0 in the bad direction); `in_range` (a z or a cut-off exists and neither fired); `no_reference` (no z and no cut-off).
+- `cutoff` is the active guideline cut-off for the metric, `{"source_id", "threshold", "op", "met"}`, else `null`. A metric can have both a norm and a cut-off; neither replaces the other. For `step_length_si`, `step_time_si` and (children 3+) `heel_first_share`, the cut-off is the NODAL screening rule's flag band, with `source_id` `nodal-rule`; the screen labels it "NODAL screening rule", never a guideline.
+- `status`, first match wins: `insufficient` (QC failed); `out_of_range` (cut-off met, or z beyond 2.0 in the bad direction); `borderline` (z between 1.5 and 2.0 in the bad direction, or a NODAL rule's watch band); `in_range` (a z or a cut-off exists and neither fired); `no_reference` (no z and no cut-off).
 
 ### Flag
 

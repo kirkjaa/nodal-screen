@@ -289,6 +289,14 @@ def apply(session: dict, cutoff_set: str = "ewgsop2", tables: norms.Tables | Non
                     severity, row = "watch", watch_row
                 label = LABEL.get(metric_id, metric_id) + _side_suffix(metric)
                 rule = "toe_walk" if metric_id == "heel_first_share" else "asymmetry"
+                if metric.get("cutoff") is None:
+                    # CONTRACT v1.3: a NODAL screening rule is the metric's cut-off (its flag band).
+                    metric["cutoff"] = {
+                        "source_id": "nodal-rule",
+                        "threshold": flag_row.threshold,
+                        "op": flag_row.op,
+                        "met": severity == "flag",
+                    }
                 if severity is not None and row is not None:
                     metric["status"] = _worse(metric["status"], "out_of_range" if severity == "flag" else "borderline")
                     add(rule, severity, f"{label} at the NODAL screening rule", metric,

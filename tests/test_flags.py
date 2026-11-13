@@ -386,3 +386,23 @@ def test_sls_norm_flag_is_a_falls_pathway(tmp_path):
     assert rules(result, "norm_z")[0]["severity"] == "flag"
     assert result["suggested_pathway"]["code"] == "FALLS_PREVENTION"
     assert "right" in rules(result, "norm_z")[0]["title"]
+
+
+def test_nodal_rule_is_the_metric_cutoff():
+    out = flags.apply(session("child", 7, "F", [
+        ("gait", "heel_first_share", 22, "left"),
+        ("gait", "heel_first_share", 65, "right"),
+        ("gait", "step_length_si", 4.0, None),
+    ]))
+    by_side = {(m["id"], m["side"]): m for m in out["tasks"]["gait"]["metrics"]}
+    left = by_side[("heel_first_share", "left")]
+    assert left["cutoff"] == {"source_id": "nodal-rule", "threshold": 50.0, "op": "<", "met": True}
+    assert left["status"] == "out_of_range"
+    right = by_side[("heel_first_share", "right")]
+    assert right["cutoff"]["met"] is False and right["status"] == "borderline"
+    si = by_side[("step_length_si", None)]
+    assert si["cutoff"] == {"source_id": "nodal-rule", "threshold": 15.0, "op": ">=", "met": False}
+    assert si["status"] == "in_range"
+    # Adults are not screened for toe walking: no rule, no cut-off.
+    adult = flags.apply(session("adult", 40, "M", [("gait", "heel_first_share", 22, "left")]))
+    assert adult["tasks"]["gait"]["metrics"][0]["cutoff"] is None
