@@ -5,18 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NODAL Screen</title>
 <link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="ds/tokens.css">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 <button class="skip-link" id="skip" data-i18n="a11y.skip" type="button"></button>
 <header class="top">
-  <div class="brand" data-i18n="product"></div>
-  <nav class="nav" id="nav"></nav>
-  <button id="lang" type="button"></button>
+  <a class="brand" href="#/" aria-label="NODAL Screen"><img class="word" src="https://nodal3d.com/assets/logo-wordmark.png" alt="NODAL"><span class="mono crumb" data-i18n="product.sub"></span></a>
+  <span class="spacer"></span>
+  <span class="chip mono sample top-chip"><i></i><span data-i18n="chip.synthetic"></span></span>
+  <button id="lang" class="btn mono" type="button"></button>
 </header>
+<nav class="nav tabs" id="nav"></nav>
 <main id="view" tabindex="-1"></main>
-<p class="note" data-i18n="footer.note"></p>
+<footer class="foot mono">
+  <span><span class="dot"></span> <span data-i18n="footer.left"></span></span>
+  <span class="spacer"></span>
+  <span data-i18n="footer.note"></span>
+  <span data-i18n="footer.right"></span>
+</footer>
 <script type="module" src="app.js"></script>
 </body>
 </html>

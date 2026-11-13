@@ -78,6 +78,7 @@ function routeOf(hash) {
 async function draw() {
   applyDocument();
   const root = document.querySelector("#view");
+  root.className = "";
   const route = routeOf(location.hash);
   await route.mod.render(root, { t, lang, pid: route.pid });
 }

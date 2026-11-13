@@ -1,7 +1,7 @@
 import { badge } from "../lib/badge.js";
 import { loadSession, loadSources } from "../lib/data.js";
 import { renderAiTexts } from "../lib/aitexts.js";
-import { loadReplay, renderReplay } from "../lib/replay.js";
+import { loadReplay, renderReplay, renderStage } from "../lib/replay.js";
 
 const SVG = "http://www.w3.org/2000/svg";
 const TASKS = ["gait", "tug", "sts5", "sls", "tandem", "hop"];
@@ -396,14 +396,318 @@ function captureCheck(session, t) {
   return block;
 }
 
+// ---------------------------------------------------------------------------
+// The panel: Strain Watch layout. Left, the readouts and findings; centre, the
+// measured take on a stage with the joint-angle curves; right, symmetry, change
+// over time, the capture check and the next step. Everything comes from the
+// session file; nothing here computes a metric, a status or a flag.
+
+const SHORT = {
+  bohannon2011: "Bohannon 2011", bohannon2006tug: "Bohannon 2006", bohannon2010sts: "Bohannon 2010",
+  springer2007: "Springer 2007", voss2020: "Voss 2020", perera2006: "Perera 2006",
+  steadi: "CDC STEADI", ewgsop2: "EWGSOP2", awgs2019: "AWGS 2019",
+};
+
+function shortSource(id, t) {
+  return id === "nodal-rule" ? t("source.nodal-rule") : (SHORT[id] || id);
+}
+
+function metricOf(session, id, side = null) {
+  for (const task of Object.values(session.tasks || {})) {
+    for (const m of task.metrics || []) {
+      if (m.id === id && (side == null || m.side === side)) return m;
+    }
+  }
+  return null;
+}
+
+function tone(status) {
+  return { in_range: "grn", borderline: "amb", out_of_range: "red" }[status] || "muted";
+}
+
+function fmt(value) {
+  if (value == null || value === "") return "–";
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  return Math.abs(n) >= 100 ? String(Math.round(n)) : String(n);
+}
+
+function refLine(metric, t) {
+  if (!metric) return "";
+  const bits = [];
+  if (metric.ref && metric.ref.mean != null) bits.push(`${t("panel.mean")} ${metric.ref.mean}`);
+  if (metric.cutoff && metric.cutoff.threshold != null) {
+    bits.push(`${t("panel.cut")} ${metric.cutoff.op} ${metric.cutoff.threshold} · ${shortSource(metric.cutoff.source_id, t)}`);
+  }
+  return bits.join("  ·  ");
+}
+
+function readout(label, metric, t, unit) {
+  const blk = el("div", "blk");
+  blk.append(el("p", "mono k", label));
+  const big = el("div", "big");
+  big.append(bdi(fmt(metric?.value)));
+  const u = el("small", "", unit ?? metric?.unit ?? "");
+  big.append(u);
+  blk.append(big);
+  if (metric) {
+    blk.append(el("p", `mono lvl ${tone(metric.status)}`, labelOf(t, `status.${metric.status}`, metric.status || "")));
+    const ref = refLine(metric, t);
+    if (ref) blk.append(el("p", "mono faint ref", ref));
+  }
+  return blk;
+}
+
+function pair(a, b) {
+  const row = el("div", "pair");
+  row.append(a, b);
+  return row;
+}
+
+function leftColumn(session, t) {
+  const col = el("aside", "side");
+  const qc = session.qc || {};
+  const code = session.suggested_pathway?.code || "";
+  const flags = session.flags || [];
+  const nFlags = flags.filter((f) => f.severity === "flag").length;
+  const nWatches = flags.filter((f) => f.severity === "watch").length;
+
+  const path = el("div", "blk");
+  path.append(el("p", "mono k", t("section.pathway")));
+  path.append(el("p", `mid ${code === "RECAPTURE" ? "red" : code === "ROUTINE" ? "grn" : "amb"}`, labelOf(t, `pathway.${code}`, code)));
+  if (qc.status !== "insufficient") {
+    const counts = el("p", "mono lvl");
+    counts.append(el("span", nFlags ? "red" : "muted", (nFlags === 1 ? t("report.flag.one") : t("report.flag.many")).replace("{n}", nFlags)));
+    counts.append(document.createTextNode("  ·  "));
+    counts.append(el("span", nWatches ? "amb" : "muted", (nWatches === 1 ? t("report.watch.one") : t("report.watch.many")).replace("{n}", nWatches)));
+    path.append(counts);
+  }
+  col.append(path);
+
+  if (qc.status === "insufficient") {
+    const box = el("div", "blk");
+    box.append(el("p", "mono k red", t("panel.recapture")));
+    box.append(el("p", "", t("report.repeat")));
+    for (const note of qc.notes || []) box.append(el("p", "mono faint", note));
+    col.append(box);
+    return col;
+  }
+
+  col.append(readout(t("panel.gait"), metricOf(session, "gait_speed"), t));
+  col.append(pair(
+    readout(t("metric.tug_time"), metricOf(session, "tug_time"), t),
+    readout(t("metric.sts5_time"), metricOf(session, "sts5_time"), t),
+  ));
+  const slsL = metricOf(session, "sls_time", "left");
+  const slsR = metricOf(session, "sls_time", "right");
+  if (slsL || slsR) {
+    col.append(pair(
+      readout(`${t("panel.sls")} · ${t("replay.left")}`, slsL, t),
+      readout(`${t("panel.sls")} · ${t("replay.right")}`, slsR, t),
+    ));
+  }
+
+  const find = el("div", "blk");
+  find.append(el("p", "mono k", t("panel.findings")));
+  if (!flags.length) find.append(el("p", "muted", t("report.none")));
+  for (const flag of flags) {
+    const card = el("div", `find${flag.severity === "watch" ? " amb" : ""}`);
+    const sources = (flag.source_ids || []).map((id) => shortSource(id, t)).join(" · ");
+    card.append(el("span", `mono ${flag.severity === "watch" ? "amb" : "red"}`,
+      `${flag.severity === "watch" ? t("report.watch") : t("report.flag")} · ${sources}`));
+    const target = findRowId(session, (flag.metric_ids || [])[0]);
+    const title = document.createElement(target ? "a" : "span");
+    if (target) title.href = `#${target}`;
+    title.className = "find-title";
+    title.textContent = flag.title || "";
+    card.append(title);
+    card.append(el("span", "mono faint find-ev", flag.evidence || ""));
+    find.append(card);
+  }
+  col.append(find);
+  return col;
+}
+
+function gauge(label, metric, max, t) {
+  const blk = el("div", "gauge");
+  const head = el("div", "gauge-h");
+  head.append(el("span", "mono k", label));
+  const val = el("span", `gauge-v ${tone(metric?.status)}`);
+  val.append(bdi(metric?.value == null ? "–" : `${fmt(metric.value)} %`));
+  head.append(val);
+  blk.append(head);
+  const track = el("div", "gauge-t");
+  track.dir = "ltr";
+  const fill = el("span", `gauge-f ${tone(metric?.status)}`);
+  const v = Math.max(0, Math.min(Number(metric?.value) || 0, max));
+  fill.style.width = `${(100 * v) / max}%`;
+  track.append(fill);
+  const th = metric?.cutoff?.threshold;
+  if (th != null && th <= max) {
+    const mark = el("span", "gauge-m");
+    mark.style.left = `${(100 * th) / max}%`;
+    mark.title = `${metric.cutoff.op} ${th}`;
+    track.append(mark);
+  }
+  blk.append(track);
+  if (th != null) blk.append(el("p", "mono faint", `${shortSource(metric.cutoff.source_id, t)} ${metric.cutoff.op} ${th} %`));
+  return blk;
+}
+
+function trend(session, t) {
+  const history = Array.isArray(session.history) ? session.history : [];
+  const now = metricOf(session, "gait_speed");
+  const pts = history.map((h) => ({ label: h.visit_id, date: h.date, v: gaitSpeed(h.metrics) }))
+    .concat([{ label: session.visit?.visit_id, date: session.visit?.date, v: now?.value }])
+    .filter((p) => p.v != null);
+  const blk = el("div", "blk");
+  blk.append(el("p", "mono k", t("panel.change")));
+  if (pts.length < 2) {
+    blk.append(el("p", "muted", t("panel.baseline")));
+    return blk;
+  }
+  const W = 300; const H = 150;
+  const vals = pts.map((p) => Number(p.v));
+  const cut = now?.cutoff?.threshold;
+  const lo = Math.min(...vals, cut ?? Infinity) - 0.1;
+  const hi = Math.max(...vals) + 0.1;
+  const X = (i) => 30 + (i * (W - 60)) / (pts.length - 1);
+  const Y = (v) => 18 + ((hi - v) * (H - 46)) / (hi - lo);
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("class", "trend");
+  svg.setAttribute("role", "img");
+  const title = document.createElementNS(SVG, "title");
+  title.textContent = `${t("panel.change")}: ${pts.map((p) => `${p.label} ${p.v} m/s`).join(", ")}`;
+  svg.append(title);
+  const mk = (name, attrs, text) => {
+    const n = document.createElementNS(SVG, name);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text != null) n.textContent = text;
+    svg.append(n);
+    return n;
+  };
+  if (cut != null) {
+    mk("line", { x1: 20, x2: W - 10, y1: Y(cut), y2: Y(cut), class: "trend-cut" });
+    mk("text", { x: W - 12, y: Y(cut) - 5, class: "trend-lab red", "text-anchor": "end" }, `${shortSource(now.cutoff.source_id, t)} ${cut}`);
+  }
+  mk("polyline", { points: pts.map((p, i) => `${X(i)},${Y(p.v)}`).join(" "), class: "trend-line" });
+  pts.forEach((p, i) => {
+    mk("circle", { cx: X(i), cy: Y(p.v), r: 3.5, class: i === pts.length - 1 ? "trend-dot now" : "trend-dot" });
+    mk("text", { x: X(i), y: Y(p.v) - 9, class: "trend-val", "text-anchor": "middle" }, String(p.v));
+    const anchor = i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle";
+    mk("text", { x: i === 0 ? X(i) - 6 : i === pts.length - 1 ? X(i) + 6 : X(i), y: H - 6, class: "trend-lab", "text-anchor": anchor }, `${p.label} · ${String(p.date || "").slice(0, 4)}`);
+  });
+  const box = el("div", "trend-box");
+  box.dir = "ltr";
+  box.append(svg);
+  blk.append(box);
+  for (const flag of session.flags || []) {
+    if (flag.rule === "change") blk.append(el("p", `mono ${flag.severity === "watch" ? "amb" : "red"}`, `${flag.evidence} · ${shortSource("perera2006", t)}`));
+  }
+  return blk;
+}
+
+function rightColumn(session, t) {
+  const col = el("aside", "side r");
+  const qc = session.qc || {};
+  if (qc.status !== "insufficient") {
+    const sym = el("div", "blk");
+    sym.append(el("p", "mono k", t("panel.symmetry")));
+    sym.append(gauge(t("metric.step_length_si"), metricOf(session, "step_length_si"), 30, t));
+    sym.append(gauge(t("metric.step_time_si"), metricOf(session, "step_time_si"), 30, t));
+    col.append(sym);
+    if (session.participant?.group === "child") {
+      const heel = el("div", "blk");
+      heel.append(el("p", "mono k", t("metric.heel_first_share")));
+      heel.append(gauge(t("replay.left"), metricOf(session, "heel_first_share", "left"), 100, t));
+      heel.append(gauge(t("replay.right"), metricOf(session, "heel_first_share", "right"), 100, t));
+      col.append(heel);
+    }
+    col.append(trend(session, t));
+  }
+  const cap = el("div", "blk");
+  cap.append(el("p", "mono k", t("section.qc")));
+  const rows = [
+    [t("qc.status"), named(t, qc.status), qc.status === "ok" ? "grn" : "red"],
+    [t("qc.confidence"), named(t, qc.confidence), qc.confidence === "high" ? "grn" : qc.confidence === "medium" ? "amb" : "red"],
+    [t("qc.strides"), `${qc.strides_left ?? "–"} L · ${qc.strides_right ?? "–"} R`, ""],
+    [t("qc.keypoint"), qc.keypoint_confidence ?? "–", ""],
+  ];
+  const dl = el("dl", "qc");
+  for (const [k, v, cls] of rows) {
+    dl.append(el("dt", "mono", k));
+    const dd = el("dd", cls);
+    dd.append(bdi(v));
+    dl.append(dd);
+  }
+  cap.append(dl);
+  cap.append(el("p", "mono faint", qc.calib_residual_px == null ? t("panel.calib") : `${t("qc.calib")} ${qc.calib_residual_px}`));
+  col.append(cap);
+
+  const next = el("div", "blk");
+  next.append(el("p", "mono k", t("panel.next")));
+  const code = session.suggested_pathway?.code || "";
+  const warn = el("div", `warn${code === "ROUTINE" ? " grn" : code === "RECAPTURE" ? "" : " amb"}`);
+  warn.append(el("span", "mono", labelOf(t, `pathway.${code}`, code)));
+  warn.append(el("p", "", t("report.clinician")));
+  next.append(warn);
+  col.append(next);
+  return col;
+}
+
+function centre(session, replay, ctx) {
+  const { t, pid } = ctx;
+  const col = el("section", "stage");
+  const stageBox = el("div", "stage-box");
+  col.append(stageBox);
+  const curves = el("div", "rp-curves panel-curves");
+  curves.dir = "ltr";
+  if (replay) {
+    renderStage(stageBox, session, replay, ctx, { curvesInto: curves });
+    const tail = el("div", "stage-foot");
+    tail.append(el("p", "mono k", t("panel.curves")));
+    tail.append(curves);
+    const open = document.createElement("a");
+    open.href = `#/p/${encodeURIComponent(pid)}/replay`;
+    open.className = "mono";
+    open.textContent = t("replay.open");
+    tail.append(open);
+    col.append(tail);
+  } else {
+    stageBox.append(...movement(session, null, ctx));
+  }
+  return col;
+}
+
+function topLine(session, t) {
+  const person = session.participant || {};
+  const visit = session.visit || {};
+  const qc = session.qc || {};
+  const bar = el("div", "rp-head");
+  const name = el("h1", "", person.display_name || "");
+  const crumb = el("p", "mono crumb");
+  const bits = [labelOf(t, `group.${person.group}`, person.group || ""), person.age_band, person.sex, visit.site, visit.visit_id, visit.date];
+  crumb.append(bdi(bits.filter(Boolean).join("  ·  ")));
+  const chips = el("div", "chips");
+  const chip = (text, cls = "") => { const c = el("span", `chip mono ${cls}`); c.append(el("i"), bdi(text)); return c; };
+  chips.append(chip(visit.kit || ""));
+  if (qc.strides_left != null) chips.append(chip(`${qc.strides_left + qc.strides_right} ${t("qc.strides").toLowerCase()}`, qc.status === "ok" ? "" : "bad"));
+  chips.append(chip(t(`badge.${session.provenance}`) || t("badge.synthetic"), "sample"));
+  const left = el("div");
+  left.append(name, crumb);
+  bar.append(left, chips);
+  return bar;
+}
+
 export async function render(root, ctx) {
   const { t, pid } = ctx;
-  const title = el("h1", "", t("heading.report"));
   const session = await loadSession(pid);
   if (!session) {
-    root.replaceChildren(title, el("p", "", t("missing")));
+    root.replaceChildren(el("h1", "", t("heading.report")), el("p", "", t("missing")));
     return;
   }
+  root.classList.add("wide");
   const sources = await loadSources();
   let replay = null;
   if (session.replay && session.replay.gait) {
@@ -413,18 +717,17 @@ export async function render(root, ctx) {
       replay = null;
     }
   }
-  const footer = el("p", "note", t("report.footer"));
-  const provenance = el("p", "note", session.provenance_note || "");
-  root.replaceChildren(
-    ...header(session, t),
-    summary(session, t),
+  const lead = el("div", "rp-lead");
+  lead.append(leftColumn(session, t), centre(session, replay, ctx), rightColumn(session, t));
+  const details = el("section", "details");
+  details.append(
+    el("h2", "", t("panel.details")),
     flagsSection(session, sources, t),
     ...resultTables(session, t),
-    ...movement(session, replay, ctx),
     ...changeSection(session, t, pid),
-    captureCheck(session, t),
     await renderAiTexts(session, ctx.lang),
-    footer,
-    provenance,
+    el("p", "note", t("report.footer")),
+    el("p", "note", session.provenance_note || ""),
   );
+  root.replaceChildren(topLine(session, t), lead, details);
 }
