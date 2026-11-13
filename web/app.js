@@ -7,6 +7,7 @@ import * as cohort from "./routes/cohort.js";
 import * as about from "./routes/about.js";
 import * as participant from "./routes/participant.js";
 import * as history from "./routes/history.js";
+import * as replay from "./routes/replay.js";
 import * as crossover from "./routes/crossover.js";
 
 const NAV = [
@@ -52,6 +53,8 @@ function applyDocument() {
 
 function routeOf(hash) {
   const text = hash || "#/";
+  const replayMatch = text.match(/^#\/p\/([^/]+)\/replay$/);
+  if (replayMatch) return { mod: replay, pid: decodeURIComponent(replayMatch[1]), href: text };
   const historyMatch = text.match(/^#\/p\/([^/]+)\/history$/);
   if (historyMatch) return { mod: history, pid: decodeURIComponent(historyMatch[1]), href: text };
   const reviewMatch = text.match(/^#\/review\/([^/]+)$/);

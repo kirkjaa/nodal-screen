@@ -16,6 +16,8 @@ const routes = [
   ["p-SYN-C-0007-history", "#/p/SYN-C-0007/history"],
   ["p-SYN-A-0102", "#/p/SYN-A-0102"],
   ["p-SYN-A-0102-history", "#/p/SYN-A-0102/history"],
+  ["replay-SYN-A-0204", "#/p/SYN-A-0204/replay"],
+  ["replay-SYN-C-0104", "#/p/SYN-C-0104/replay"],
   ["crossover", "#/crossover"],
   ["review-SYN-C-0007", "#/review/SYN-C-0007"],
 ];

@@ -77,3 +77,43 @@ fieldset.choice{min-inline-size:0;border:1px solid var(--border);border-radius:4
 ol.protocol{margin:8px 0 0;padding-inline-start:1.2rem}
 .ai-block{min-width:0;max-width:100%;overflow-wrap:anywhere}
 .ai-out{white-space:pre-wrap;overflow-wrap:anywhere;direction:ltr;font-family:var(--font-mono);font-size:12px;max-width:100%;margin:8px 0 0}
+
+/* Gait replay (web/lib/replay.js). Left and right keep their colours in both languages. */
+.replay{--side-left:#4f86c6;--side-right:#d9822b;margin-block:24px}
+.replay-stage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-block:16px}
+.replay-view,.replay-curve{margin:0;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;min-width:0}
+.replay-view figcaption,.replay-curve figcaption{font:12px var(--font-mono);color:var(--muted);margin-bottom:6px}
+.replay-svg{width:100%;height:auto;display:block}
+.replay-view .replay-svg{max-height:340px;margin-inline:auto}
+.replay-ground{stroke:var(--strong);stroke-width:1.5}
+.replay-bone{stroke-linecap:round;stroke-width:2.2}
+.replay-bone.is-body{stroke-width:7}
+.replay-bone.is-left{stroke:var(--side-left)}
+.replay-bone.is-right{stroke:var(--side-right)}
+.replay-bone.is-centre{stroke:var(--bone-2)}
+.replay-head{fill:var(--bone-2);opacity:.85}
+.replay-joint.is-left{fill:var(--side-left)}.replay-joint.is-right{fill:var(--side-right)}.replay-joint.is-centre{fill:var(--bone-2)}
+.replay-ring{fill:none;stroke-width:2}
+.replay-ring.is-left{stroke:var(--side-left)}.replay-ring.is-right{stroke:var(--side-right)}
+.replay-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.replay-button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid var(--strong);background:var(--card);color:var(--text);cursor:pointer}
+.replay-button:focus-visible,.replay select:focus-visible,.replay input:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.replay select{font:inherit;padding:4px 6px;background:var(--card);color:var(--text);border:1px solid var(--strong);border-radius:6px}
+.replay-readout{font:12px var(--font-mono);color:var(--muted);white-space:nowrap}
+.replay-track{margin-block:10px 4px}
+.replay-track input{width:100%}
+.replay-marks{width:100%;height:12px;display:block}
+.replay-marks .is-left{fill:var(--side-left)}.replay-marks .is-right{fill:var(--side-right)}
+.replay-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px}
+.replay-legend .key::before{content:"";display:inline-block;width:14px;height:4px;border-radius:2px;margin-inline-end:6px;vertical-align:middle}
+.replay-legend .key.is-left::before{background:var(--side-left)}.replay-legend .key.is-right::before{background:var(--side-right)}
+.replay-status{min-height:1.4em;font:12px var(--font-mono);color:var(--body)}
+.replay-curves{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.replay-grid{stroke:var(--rule);stroke-width:1}
+.replay-axis{font:9px var(--font-mono);fill:var(--muted)}
+.replay-line{fill:none;stroke-width:2}
+.replay-line.is-left{stroke:var(--side-left)}.replay-line.is-right{stroke:var(--side-right)}
+.replay-line.is-dashed{stroke-dasharray:5 4}
+.replay-cursor{stroke-width:1.5}
+.replay-cursor.is-left{stroke:var(--side-left)}.replay-cursor.is-right{stroke:var(--side-right);stroke-dasharray:3 3}
+@media (max-width:640px){.replay-stage,.replay-curves{grid-template-columns:1fr}}
