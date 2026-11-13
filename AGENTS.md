@@ -15,6 +15,8 @@ NODAL Screen is NODAL's prototype for the Future Health Challenge (Abu Dhabi), p
 
 ### Codex lane (C06 frontend polish, from 13 Nov)
 
+If Codex is out of usage when T04 to T11 have merged, Claude does the next polish pass itself (Kirk, 13 Nov); Codex picks up from whatever is on `main` when it is back.
+
 - Work in your own worktree `D:\nodal-screen-c06` on branch `c06-polish`, created from `main` **after "Merge T01"** (before that, `main` has no app shell). Rebase on `main` each time another task merges. Never commit to `main`, never merge, never push.
 - Scope: the look and feel of every screen on `main`: `web/ds/`, `web/app.css`, layout, type, spacing, navigation, charts' styling, right-to-left Arabic, phone width (390 px), keyboard and contrast. Keep `web/report.html` (the workplace tab) working.
 - Out of scope: `data/`, `screen/`, `server/`, `docs/CONTRACT.md`, the rules in `scripts/verify.py`, and which numbers, flags or statuses a screen shows (those come from the session files). Do not edit `web/routes/participant.js` until T11 (the report, built from Claude's C05 spec) is merged; then polish its styling only.
