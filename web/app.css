@@ -257,3 +257,47 @@ dl.qc dd.grn{color:var(--ready)} dl.qc dd.amb{color:var(--alpha)} dl.qc dd.red{c
 .roster-foot{margin:0;color:var(--muted);font-size:10px}
 @media (max-width:1100px){.ov-steps{grid-template-columns:repeat(3,minmax(0,1fr))}.ov-steps li:nth-child(4){border-inline-start:0}.ov-steps li:nth-child(n+4){border-top:1px solid var(--rule)}.roster{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.ov-hero,.ov-flow,.ov-roster{padding-inline:16px}.ov-steps{grid-template-columns:1fr 1fr}.ov-steps li{border-inline-start:0 !important;border-top:1px solid var(--rule)}.ov-steps li:nth-child(even){border-inline-start:1px solid var(--rule) !important}.ov-steps li:nth-child(-n+2){border-top:0}.roster{grid-template-columns:1fr}}
+
+/* ---- Capture console (M1 emulator layout) ---- */
+.cap{display:grid;grid-template-columns:300px minmax(0,1fr) 340px;border-bottom:1px solid var(--rule);min-height:calc(100vh - 56px - 46px - 110px)}
+.cap-select{width:100%;font:13px var(--font-display);background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:8px 10px;margin-bottom:14px}
+.cap-who{margin:0}
+.cap-who dd{text-align:start !important;font-size:13px}
+.cap-steps{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cap-steps li{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--rule);border-radius:4px;padding:8px 10px;font-size:13.5px}
+.cap-steps li .mono{font-size:9.5px;color:var(--muted)}
+.cap-steps li.is-next{border-color:var(--live)} .cap-steps li.is-next .mono{color:var(--live)}
+.cap-steps li.is-done{border-color:var(--ready)} .cap-steps li.is-done .mono{color:var(--ready)}
+.cap-steps li.is-absent{opacity:.55}
+.cap-ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cap-ctl p{flex-basis:100%;font-size:9.5px;line-height:1.6;text-transform:none;letter-spacing:.04em}
+.cap-rec{background:var(--live);border-color:var(--live);color:#fff;font-weight:600}
+.cap-rec:disabled{opacity:.45;cursor:default}
+.cap-main{min-width:0;padding:18px 20px;display:flex;flex-direction:column;gap:18px}
+.cap-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cap-tile{margin:0;border:1px solid var(--border);border-radius:6px;background:var(--card);overflow:hidden}
+.cap-tile-h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--rule)}
+.cap-tile-h .mono{color:var(--text);letter-spacing:.06em}
+.cap-badge{border:1px solid var(--alpha);color:var(--alpha) !important;border-radius:3px;padding:1px 7px;font-size:9.5px}
+.cap-svg{display:block;width:100%;height:auto;background:var(--inset)}
+.cap-grid line{stroke:var(--rule);stroke-width:.8}
+.cap-bone{stroke-width:1.7;stroke-linecap:round}
+.cap-bone.is-left{stroke:var(--side-left)} .cap-bone.is-right{stroke:var(--side-right)} .cap-bone.is-centre{stroke:var(--bone)}
+.cap-head{fill:none;stroke:var(--bone);stroke-width:1.5}
+.cap-ov{font:7px var(--font-mono);fill:var(--muted)}
+.cap-tile-f{padding:6px 10px;color:var(--muted);font-size:9.5px;margin:0}
+.cap-fire{border:1px solid var(--border);border-radius:6px;padding:14px 16px;background:var(--card)}
+.cap-fire>.k{margin:0 0 8px}
+.cap-clips{width:100%;border-collapse:collapse;font-size:13px}
+.cap-clips th{text-align:start;color:var(--muted);font-size:9.5px;font-weight:400;padding:6px 8px;border-bottom:1px solid var(--rule)}
+.cap-clips td{padding:8px;border-bottom:1px solid var(--rule)}
+.cap-ready{margin-top:12px}
+.cap-ready a{color:var(--text)}
+.cap-events{padding:18px 20px}
+.cap-events>.k{margin:0 0 10px}
+.cap-log{font-size:10.5px;line-height:1.7;text-transform:none;letter-spacing:.02em;max-height:70vh;overflow:auto}
+.cap-log p{margin:0;color:var(--body)}
+.cap-log p.faint{color:var(--muted)}
+.cap-log p.grn{color:var(--ready)}
+@media (max-width:1180px){.cap{grid-template-columns:280px minmax(0,1fr)}.cap-events{grid-column:1/-1;border-inline-start:0;border-top:1px solid var(--rule)}}
+@media (max-width:720px){.cap{grid-template-columns:1fr}.cap-rig{border-inline-end:0;border-bottom:1px solid var(--rule)}.cap-main{padding:14px 16px}.cap-tiles{grid-template-columns:1fr 1fr;gap:8px}.cap-log{max-height:40vh}}
