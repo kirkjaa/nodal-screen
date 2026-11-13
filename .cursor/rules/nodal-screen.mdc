@@ -1,0 +1,6 @@
+---
+description: NODAL Screen rules, always on
+alwaysApply: true
+---
+
+Read `AGENTS.md` at the repo root before any work and follow it exactly. Tasks live in `tasks/T*.md`; the data contract is `docs/CONTRACT.md`. One task per branch, finish with `python scripts/verify.py` and a done note in `tasks/done/`. Never call paid APIs, never open NODAL's proprietary gait engine (`vendor/`, `F:\pi-camera-project`), never write that the product diagnoses.

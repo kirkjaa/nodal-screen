@@ -1,0 +1,7 @@
+vendor/
+data/raw/
+out/
+*.mp4
+*.npy
+*.npz
+.venv/

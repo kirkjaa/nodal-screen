@@ -1,5 +1,10 @@
 # Footage and derived data stay out of git; only consented sample clips are added on purpose.
-data/
+data/*
+!data/samples/
+!data/norms.csv
+!data/cutoffs.csv
+!data/sources.json
+!data/cohort.json
 *.mp4
 *.mkv
 *.avi
@@ -10,3 +15,9 @@ __pycache__/
 
 # generated from the markdown
 docs/TECHNICAL-summary.html
+
+# NODAL Screen
+out/
+data/raw/
+vendor/
+.media.env
