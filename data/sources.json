@@ -5,28 +5,28 @@
     "used_for": "Adult gait speed grand means by sex and decade. Table 2 reports a 95% CI, not an SD, so sd is blank.",
     "verified": false
   },
-  "lythgo2009": {
-    "citation": "Lythgo, Wilson and Galea. Gait & Posture. 2009;30(4):502-506.",
-    "doi_or_url": "",
-    "used_for": "Child gait speed, cadence, stride length, step time, double support and height-normalized stride. Table not opened.",
+  "voss2020": {
+    "citation": "Voss S, Joyce J, Biskis A, et al. Normative database of spatiotemporal gait parameters using inertial sensors in typically developing children and young adults. Gait Posture. 2020;80:206-213.",
+    "doi_or_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7388584/",
+    "used_for": "Child self-selected gait speed, cadence, stride length, and double support by the paper's age bands. Step time is not in Table 2. The 11 to 13 stride-length cell could not be read.",
     "verified": false
   },
   "bohannon2006tug": {
-    "citation": "Bohannon. J Geriatr Phys Ther. 2006;29(2):64-68.",
-    "doi_or_url": "",
-    "used_for": "TUG reference values by age. Table not opened.",
+    "citation": "Bohannon RW. Reference values for the timed up and go test: a descriptive meta-analysis. J Geriatr Phys Ther. 2006;29(2):64-68.",
+    "doi_or_url": "https://geriatrictoolkit.missouri.edu/tug/Bohannon-TUG-Ref-JGPT2006-2.pdf",
+    "used_for": "TUG grand means by age. Table 2 gives a 95% CI, not an SD, so sd is blank.",
     "verified": false
   },
-  "bohannon2006sts": {
-    "citation": "Bohannon. Percept Mot Skills. 2006;103(1):215-222.",
-    "doi_or_url": "",
-    "used_for": "Five-repetition sit-to-stand reference values by age. Table not opened.",
+  "bohannon2010sts": {
+    "citation": "Bohannon RW, Bubela DJ, Magasi SR, Wang YC, Gershon RC. Sit-to-stand test: performance and determinants across the age-span. Isokinet Exerc Sci. 2010;18(4):235-240.",
+    "doi_or_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4293702/",
+    "used_for": "Five-repetition sit-to-stand mean and SD for every age group in Table 1.",
     "verified": false
   },
   "springer2007": {
-    "citation": "Springer et al. J Geriatr Phys Ther. 2007;30(1):8-15.",
-    "doi_or_url": "",
-    "used_for": "Single-leg stance, eyes open, by age and sex. Table not opened.",
+    "citation": "Springer BA, Marin R, Cyhan T, Roberts H, Gill NW. Normative values for the unipedal stance test with eyes open and closed. J Geriatr Phys Ther. 2007;30(1):8-15.",
+    "doi_or_url": "https://geriatrictoolkit.missouri.edu/balance/Normative_Values_for_the_Unipedal_Stance_Test_Springer-JGPT.pdf",
+    "used_for": "Single-leg stance, eyes open, best of 3, by age and sex. The parenthesis is labeled SE, so it was not copied into sd.",
     "verified": false
   },
   "steadi": {

@@ -83,9 +83,21 @@ def test_norm_lookup_uses_decade_sex_and_skips_blank_rows():
     assert norms.norm_for("gait_speed", "M", 29, "adult", tables)["mean"] == pytest.approx(1.358)
     assert norms.norm_for("gait_speed", "M", 30, "adult", tables)["mean"] == pytest.approx(1.433)
     assert norms.norm_for("gait_speed", "F", 99, "adult", tables)["mean"] == pytest.approx(0.943)
-    assert norms.norm_for("gait_speed", "M", 7, "child", tables) is None
     assert norms.norm_for("gait_speed", "M", 100, "adult", tables) is None
-    assert norms.norm_for("cadence", "F", 8, "child", tables) is None
+    child = norms.norm_for("gait_speed", "F", 6, "child", tables)
+    assert child["source_id"] == "voss2020"
+    assert child["mean"] == pytest.approx(1.11)
+    assert child["sd"] == pytest.approx(0.12)
+    stand = norms.norm_for("sts5_time", "F", 72, "adult", tables)
+    assert stand["source_id"] == "bohannon2010sts"
+    assert stand["mean"] == pytest.approx(9.3)
+    assert stand["sd"] == pytest.approx(2.1)
+    tug = norms.norm_for("tug_time", "M", 75, "adult", tables)
+    assert tug["mean"] == pytest.approx(9.2)
+    assert tug["sd"] is None
+    sls = norms.norm_for("sls_time", "F", 65, "adult", tables)
+    assert sls["mean"] == pytest.approx(30.4)
+    assert sls["sd"] is None
 
 
 def test_norm_for_prefers_sex_then_narrower_age(tmp_path):
@@ -104,15 +116,15 @@ def test_unread_sources_and_catalog():
     tables = norms.load()
     catalog = json.loads((norms.ROOT / "data" / "sources.json").read_text(encoding="utf-8"))
     expected = {
-        "bohannon2011", "lythgo2009", "bohannon2006tug", "bohannon2006sts",
+        "bohannon2011", "voss2020", "bohannon2006tug", "bohannon2010sts",
         "springer2007", "steadi", "ewgsop2", "awgs2019", "perera2006", "nodal-rule",
     }
     assert set(catalog) == expected
     assert all(item["verified"] is False for item in catalog.values())
-    unread = {"lythgo2009", "bohannon2006tug", "bohannon2006sts", "springer2007"}
-    blank = [row for row in tables.norms if row.source_id in unread]
-    assert len(blank) == 9
-    assert all(row.status == "placeholder" and row.mean is None for row in blank)
+    pending = [row for row in tables.norms if row.status == "placeholder"]
+    assert {row.metric for row in pending} == {"step_time", "stride_length"}
+    assert all(row.mean is None and row.source_id == "voss2020" for row in pending)
+    assert all(row.sd is None for row in tables.norms if row.source_id in {"bohannon2011", "bohannon2006tug", "springer2007"})
     assert all(row.status != "verified" for row in tables.norms + tables.cutoffs)
 
 
@@ -152,6 +164,42 @@ def test_z_edges_and_direction(tmp_path):
     for value, severity in ((115, "watch"), (120, "watch"), (120.1, "flag"), (85, "watch"), (80, "watch"), (79.9, "flag")):
         cadence, cadence_flags = one("cadence", value)
         assert cadence_flags[0]["severity"] == severity
+
+
+def test_norm_stays_beside_the_cutoff():
+    quiet = flags.apply(session(rows=[("gait", "gait_speed", 1.20, None)]))
+    item = metric(quiet, "gait_speed")
+    assert item["ref"]["kind"] == "norm"
+    assert item["ref"]["source_id"] == "bohannon2011"
+    assert item["ref"]["mean"] == pytest.approx(1.262)
+    assert item["ref"]["sd"] is None
+    assert item["ref"]["z"] is None
+    assert item["cutoff"] == {"source_id": "ewgsop2", "threshold": 0.8, "op": "<=", "met": False}
+    assert item["status"] == "in_range"
+    assert quiet["flags"] == []
+
+    slow = flags.apply(session(rows=[("gait", "gait_speed", 0.70, None)]))
+    item = metric(slow, "gait_speed")
+    assert item["ref"]["mean"] == pytest.approx(1.262)
+    assert item["ref"]["z"] is None
+    assert item["cutoff"]["met"] is True
+    assert item["cutoff"]["source_id"] == "ewgsop2"
+    assert item["status"] == "out_of_range"
+    assert [flag["rule"] for flag in slow["flags"]] == ["cutoff"]
+
+    awgs = flags.apply(session(rows=[("gait", "gait_speed", 0.95, None)]), cutoff_set="awgs2019")
+    ewgsop = flags.apply(session(rows=[("gait", "gait_speed", 0.95, None)]), cutoff_set="ewgsop2")
+    assert metric(awgs, "gait_speed")["cutoff"]["met"] is True
+    assert metric(awgs, "gait_speed")["cutoff"]["op"] == "<"
+    assert metric(awgs, "gait_speed")["cutoff"]["threshold"] == pytest.approx(1.0)
+    assert metric(ewgsop, "gait_speed")["cutoff"]["met"] is False
+
+    bare = flags.apply(session(rows=[("gait", "cadence", 100, None)]))
+    item = metric(bare, "cadence")
+    assert item["ref"] is None
+    assert item["cutoff"] is None
+    assert item["status"] == "no_reference"
+    assert bare["flags"] == []
 
 
 def test_placeholder_norm_keeps_status(tmp_path):

@@ -196,6 +196,7 @@ def apply(session: dict, cutoff_set: str = "ewgsop2", tables: norms.Tables | Non
         for metric in _iter_metrics(session):
             metric["status"] = "insufficient"
             metric["ref"] = None
+            metric["cutoff"] = None
         session["flags"] = []
         session["suggested_pathway"] = {"code": "RECAPTURE", "reason_flag_ids": []}
         return session
@@ -218,6 +219,7 @@ def apply(session: dict, cutoff_set: str = "ewgsop2", tables: norms.Tables | Non
         metric_id = metric.get("id")
         value = metric.get("value")
         metric["ref"] = None
+        metric["cutoff"] = None
         metric["status"] = None
         if value is None:
             metric["status"] = "no_reference"
@@ -255,33 +257,25 @@ def apply(session: dict, cutoff_set: str = "ewgsop2", tables: norms.Tables | Non
             row for row in norms.cutoffs_for(metric_id, group, cutoff_set, tables)
             if row.source_id != "nodal-rule"
         ]
-        hit = next((row for row in published if _meets(value, row.op, row.threshold)), None)
-        if hit is not None:
-            name = SOURCE_NAME.get(hit.source_id, hit.source_id)
-            label = LABEL.get(metric_id, metric_id) + _side_suffix(metric)
-            metric["status"] = _worse(metric["status"], "out_of_range")
-            if metric["ref"] is None:
-                metric["ref"] = {
-                    "kind": "cutoff",
-                    "source_id": hit.source_id,
-                    "threshold": hit.threshold,
-                    "op": hit.op,
-                    "status": hit.status,
-                }
-            unit = metric.get("unit") or hit.unit
-            add("cutoff", "flag", f"{label} at the {name} cut-off", metric,
-                f"{_num(value)} {unit}, cut-off {hit.op} {_num(hit.threshold)} {hit.unit}",
-                [hit.source_id])
-        elif published and metric["status"] is None:
-            row = published[0]
-            metric["ref"] = {
-                "kind": "cutoff",
+        if published:
+            hit = next((row for row in published if _meets(value, row.op, row.threshold)), None)
+            row = hit if hit is not None else published[0]
+            metric["cutoff"] = {
                 "source_id": row.source_id,
                 "threshold": row.threshold,
                 "op": row.op,
-                "status": row.status,
+                "met": hit is not None,
             }
-            metric["status"] = "in_range"
+            if hit is not None:
+                name = SOURCE_NAME.get(row.source_id, row.source_id)
+                label = LABEL.get(metric_id, metric_id) + _side_suffix(metric)
+                metric["status"] = _worse(metric["status"], "out_of_range")
+                unit = metric.get("unit") or row.unit
+                add("cutoff", "flag", f"{label} at the {name} cut-off", metric,
+                    f"{_num(value)} {unit}, cut-off {row.op} {_num(row.threshold)} {row.unit}",
+                    [row.source_id])
+            elif metric["status"] is None:
+                metric["status"] = "in_range"
 
         if metric_id in ("step_length_si", "step_time_si", "heel_first_share"):
             allowed = metric_id != "heel_first_share" or (group == "child" and age_y is not None and age_y >= 3)
@@ -297,27 +291,11 @@ def apply(session: dict, cutoff_set: str = "ewgsop2", tables: norms.Tables | Non
                 rule = "toe_walk" if metric_id == "heel_first_share" else "asymmetry"
                 if severity is not None and row is not None:
                     metric["status"] = _worse(metric["status"], "out_of_range" if severity == "flag" else "borderline")
-                    if metric["ref"] is None:
-                        metric["ref"] = {
-                            "kind": "cutoff",
-                            "source_id": "nodal-rule",
-                            "threshold": row.threshold,
-                            "op": row.op,
-                            "status": row.status,
-                        }
                     add(rule, severity, f"{label} at the NODAL screening rule", metric,
                         f"{_num(value)} {metric.get('unit') or row.unit}, NODAL screening rule {row.op} {_num(row.threshold)}",
                         ["nodal-rule"])
                 elif metric["status"] is None:
                     metric["status"] = "in_range"
-                    if metric["ref"] is None and flag_row is not None:
-                        metric["ref"] = {
-                            "kind": "cutoff",
-                            "source_id": "nodal-rule",
-                            "threshold": flag_row.threshold,
-                            "op": flag_row.op,
-                            "status": flag_row.status,
-                        }
 
         if metric["status"] is None:
             metric["status"] = "no_reference"
