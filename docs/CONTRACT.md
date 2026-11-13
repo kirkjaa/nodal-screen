@@ -146,6 +146,8 @@ Applied only when `qc.status` is `ok`. Each rule writes its threshold and source
 | `change` | `gait_speed` fell 0.10 m/s or more from the earliest visit in `history` (`perera2006`) | flag |
 | `change` | fell 0.05 to 0.10 m/s | watch |
 
+The `change` rule writes a flag only; it does not change the metric's status, which comes from the norm and the cut-off (section 2).
+
 Symmetry index: `SI = 100 * |L - R| / (0.5 * (L + R))`.
 The asymmetry and toe-walking thresholds are NODAL screening rules, not published cut-offs; their `source_ids` is `["nodal-rule"]` and the screen says "NODAL screening rule".
 

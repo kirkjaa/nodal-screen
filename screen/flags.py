@@ -322,7 +322,8 @@ def apply(session: dict, cutoff_set: str = "ewgsop2", tables: norms.Tables | Non
             drop = round(earliest - float(speed["value"]), 10)
             if drop >= small:
                 severity = "flag" if drop >= substantial else "watch"
-                speed["status"] = _worse(speed["status"], "out_of_range" if severity == "flag" else "borderline")
+                # CONTRACT 4: the change rule writes a flag; the metric's status stays
+                # what its norm and cut-off say.
                 add("change", severity, "Gait speed fell from an earlier visit", speed,
                     f"fell {_num(drop)} m/s from {_num(earliest)} m/s", ["perera2006"])
 

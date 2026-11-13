@@ -58,7 +58,7 @@
             "op": "<=",
             "met": false
           },
-          "status": "out_of_range"
+          "status": "in_range"
         },
         {
           "id": "cadence",

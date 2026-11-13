@@ -140,9 +140,10 @@ function summary(session, t) {
   const nWatches = flags.filter((flag) => flag.severity === "watch").length;
   if (!nFlags && !nWatches) box.append(el("p", "", t("report.none")));
   else {
+    const count = (n, key) => t(n === 1 ? `${key}.one` : `${key}.many`).replaceAll("{n}", String(n));
     box.append(el("p", "", t("report.count")
-      .replaceAll("{n_flags}", String(nFlags))
-      .replaceAll("{n_watches}", String(nWatches))));
+      .replaceAll("{flags}", count(nFlags, "report.flag"))
+      .replaceAll("{watches}", count(nWatches, "report.watch"))));
   }
   box.append(el("p", "", t("report.clinician")));
   return box;
@@ -151,6 +152,7 @@ function summary(session, t) {
 function flagsSection(session, sources, t) {
   const block = el("section");
   block.append(el("h2", "", t("section.flags")));
+  if (!(session.flags || []).length) block.append(el("p", "", t("empty.flags")));
   for (const flag of session.flags || []) {
     const row = el("article", flag.severity === "watch" ? "flag watch" : "flag");
     const chip = el("span", "k", flag.severity === "watch" ? t("report.watch") : t("report.flag"));
