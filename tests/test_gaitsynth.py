@@ -8,15 +8,26 @@ import numpy as np
 from screen.gaitsynth import (
     BONES,
     FPS,
+    L_AN,
     L_BTOE,
     L_HEEL,
     L_HIP,
+    L_KN,
+    L_SH,
+    L_WR,
     PRESETS,
+    R_AN,
     R_BTOE,
     R_HEEL,
     R_HIP,
+    R_KN,
+    R_SH,
+    R_WR,
     Person,
+    _knee_flex_deg,
+    _person_from_spec,
     plot_file,
+    plot_knee,
     save_npz,
     sls,
     sts5,
@@ -213,6 +224,10 @@ def test_presets_write_and_plots(tmp_path):
         png = plot_dir / f"{name}.png"
         plot_file(walk, png, name)
         assert png.stat().st_size > 1000
+        if name in ("adult-typical-45", "adult-asym-64"):
+            knee_png = plot_dir / f"knee-{name}.png"
+            plot_knee(walk, knee_png, name)
+            assert knee_png.stat().st_size > 1000
     decline = np.load(tmp_path / "adult-decline-69" / "v3.npz")
     assert abs(json.loads(str(decline["truth"].item()))["params"]["speed_m_s"] - 0.94) < 1e-9
     low = np.load(tmp_path / "child-lowdata-5" / "walk10.npz")
@@ -226,3 +241,158 @@ def test_npz_truth_is_json(tmp_path):
     truth = json.loads(str(data["truth"].item()))
     assert truth["params"]["toe_walk"] == 1.0
     assert truth["fps"] == FPS
+
+
+def _peaks(kp):
+    left = float(np.max(_knee_flex_deg(kp[:, L_HIP], kp[:, L_KN], kp[:, L_AN])))
+    right = float(np.max(_knee_flex_deg(kp[:, R_HIP], kp[:, R_KN], kp[:, R_AN])))
+    return left, right
+
+
+def test_knee_peaks_match_the_angle_curves():
+    typical = walk10(_person_from_spec(PRESETS["adult-typical-45"]))
+    child = walk10(_person_from_spec(PRESETS["child-typical-6"]))
+    for out in (typical, child):
+        left, right = _peaks(out["kp"])
+        assert 55.0 <= left <= 65.0
+        assert 55.0 <= right <= 65.0
+    asym = walk10(_person_from_spec(PRESETS["adult-asym-64"]))
+    left, right = _peaks(asym["kp"])
+    assert abs((left - right) - 20.0) <= 3.0
+
+
+def test_heel_lands_and_the_toe_clears():
+    for name in ("adult-typical-45", "child-typical-6", "adult-asym-64"):
+        out = walk10(_person_from_spec(PRESETS[name]))
+        kp = out["kp"]
+        for side, heel, toe in (("left", L_HEEL, L_BTOE), ("right", R_HEEL, R_BTOE)):
+            events = out["truth"]["events"][side]
+            strikes = [event["hs"] for event in events if "hs" in event]
+            for event in events:
+                hs = event.get("hs")
+                if hs is None or hs < 1:
+                    continue
+                err = float(np.linalg.norm(kp[hs - 1, heel] - kp[hs, heel]))
+                assert err < 5.0, (name, side, hs, err)
+            for event in events:
+                to = event.get("to")
+                if to is None:
+                    continue
+                nxt = [hs for hs in strikes if hs > to]
+                if not nxt:
+                    continue
+                swing = kp[to:nxt[0], toe, 2]
+                assert swing.size
+                assert float(np.min(swing)) >= 5.0, (name, side, to)
+
+
+def test_sts_arms_stay_crossed():
+    out = sts5(_person_from_spec(PRESETS["adult-typical-45"]), 8.5)
+    kp = out["kp"]
+    left = np.linalg.norm(kp[:, L_WR] - kp[:, R_SH], axis=1)
+    right = np.linalg.norm(kp[:, R_WR] - kp[:, L_SH], axis=1)
+    assert float(left.max()) < 150.0
+    assert float(right.max()) < 150.0
+
+
+def _horiz_speed(kp, heel, toe):
+    heel_step = np.linalg.norm(np.diff(kp[:, heel, :2], axis=0), axis=1)
+    toe_step = np.linalg.norm(np.diff(kp[:, toe, :2], axis=0), axis=1)
+    slow = np.minimum(heel_step, toe_step)
+    return np.concatenate([slow, slow[-1:]])
+
+
+def test_swing_foot_does_not_ease_to_a_stop():
+    # The slowed final stride sits in the timing zone and is not part of this check.
+    for name in ("adult-typical-45", "child-typical-6"):
+        out = walk10(_person_from_spec(PRESETS[name]))
+        kp = out["kp"]
+        for side, heel, toe in (("left", L_HEEL, L_BTOE), ("right", R_HEEL, R_BTOE)):
+            events = out["truth"]["events"][side]
+            strikes = [event["hs"] for event in events if "hs" in event]
+            if len(strikes) < 2:
+                continue
+            last = strikes[-1]
+            speed = _horiz_speed(kp, heel, toe)
+            for event in events:
+                to = event.get("to")
+                if to is None:
+                    continue
+                nxt = [hs for hs in strikes if hs > to]
+                if not nxt or nxt[0] == last or nxt[0] <= to + 2:
+                    continue
+                seg = speed[to:nxt[0]]
+                peak = float(seg.max())
+                assert peak > 0.0
+                slow_after = 0
+                for value in seg:
+                    if value < 0.1 * peak:
+                        slow_after += 1
+                    else:
+                        break
+                slow_before = 0
+                for value in seg[::-1]:
+                    if value < 0.1 * peak:
+                        slow_before += 1
+                    else:
+                        break
+                assert slow_after <= 1, (name, side, to, slow_after)
+                assert slow_before <= 1, (name, side, to, slow_before)
+
+
+def test_stance_and_double_support_fractions():
+    for name in ("adult-typical-45", "child-typical-6"):
+        out = walk10(_person_from_spec(PRESETS[name]))
+        fractions = []
+        for side in ("left", "right"):
+            events = out["truth"]["events"][side]
+            strikes = [event["hs"] for event in events if "hs" in event]
+            for event in events:
+                if "hs" not in event or "to" not in event:
+                    continue
+                nxt = [hs for hs in strikes if hs > event["hs"]]
+                if not nxt:
+                    continue
+                cycle = nxt[0] - event["hs"]
+                if cycle < 10:
+                    continue
+                fractions.append((event["to"] - event["hs"]) / cycle)
+        assert fractions
+        assert 0.58 <= float(np.mean(fractions)) <= 0.62
+
+        def down(side, frame):
+            for event in out["truth"]["events"][side]:
+                hs = event.get("hs")
+                to = event.get("to")
+                if hs is not None and to is not None and hs <= frame < to:
+                    return True
+            return False
+
+        n = len(out["kp"])
+        both = total = 0
+        for frame in range(120, n - 120):
+            total += 1
+            if down("left", frame) and down("right", frame):
+                both += 1
+        assert total
+        assert 0.18 <= both / total <= 0.24
+
+
+def test_step_width_and_hip_spacing():
+    for name in ("adult-typical-45", "child-typical-6"):
+        out = walk10(_person_from_spec(PRESETS[name]))
+        kp = out["kp"]
+        height = PRESETS[name]["height_m"] * 1000.0
+        gap = np.abs(kp[:, L_HIP, 1] - kp[:, R_HIP, 1])
+        assert abs(float(np.median(gap)) - 0.10 * height) < 8.0
+        order = []
+        for side, ankle in (("left", L_AN), ("right", R_AN)):
+            for event in out["truth"]["events"][side]:
+                if "hs" in event and event["hs"] > 30:
+                    order.append((event["hs"], float(kp[event["hs"], ankle, 1])))
+        order.sort()
+        widths = [abs(a[1] - b[1]) for a, b in zip(order, order[1:])]
+        assert widths
+        for width in widths[:-1]:
+            assert 0.05 * height <= width <= 0.08 * height
+
