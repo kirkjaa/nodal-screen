@@ -16,7 +16,8 @@ function textFor(block, lang) {
 }
 
 export async function renderAiTexts(session, lang) {
-  const t = (key) => translate(await catalog(), lang, key);
+  const books = await catalog();
+  const t = (key) => translate(books, lang, key);
   const root = document.createElement("section");
   root.className = "panel ai-block";
   const heading = document.createElement("h2");

@@ -18,6 +18,7 @@ SCAN_ROOTS = [ROOT / "web", ROOT / "data", ROOT / "docs"]
 SKIP = {ROOT / "docs" / "CONTRACT.md"}
 NODE_PATH = "C:/Users/User/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules"
 ALLOW = (
+    "Screening, not diagnosis. NODAL Screen flags results for review; a clinician reviews and diagnoses.",
     "clinicians review and diagnose",
     "clinician reviews and diagnoses",
     "does not diagnose",

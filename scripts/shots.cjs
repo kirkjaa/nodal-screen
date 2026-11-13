@@ -12,14 +12,17 @@ const routes = [
   ["review", "#/review"],
   ["cohort", "#/cohort"],
   ["about", "#/about"],
-  ["p-SYN-C-0007", "#/p/SYN-C-0007"],
-  ["p-SYN-C-0007-history", "#/p/SYN-C-0007/history"],
-  ["p-SYN-A-0102", "#/p/SYN-A-0102"],
-  ["p-SYN-A-0102-history", "#/p/SYN-A-0102/history"],
+  ["p-SYN-C-0102", "#/p/SYN-C-0102"],
+  ["p-SYN-C-0104", "#/p/SYN-C-0104"],
+  ["p-SYN-A-0203", "#/p/SYN-A-0203"],
+  ["p-SYN-A-0204", "#/p/SYN-A-0204"],
+  ["p-SYN-A-0205", "#/p/SYN-A-0205"],
+  ["p-SYN-A-0205-history", "#/p/SYN-A-0205/history"],
+  ["p-SYN-C-0101-history", "#/p/SYN-C-0101/history"],
   ["replay-SYN-A-0204", "#/p/SYN-A-0204/replay"],
   ["replay-SYN-C-0104", "#/p/SYN-C-0104/replay"],
   ["crossover", "#/crossover"],
-  ["review-SYN-C-0007", "#/review/SYN-C-0007"],
+  ["review-SYN-C-0102", "#/review/SYN-C-0102"],
 ];
 const widths = [
   [1440, 900],
@@ -46,7 +49,7 @@ const widths = [
         await page.setViewportSize({ width, height });
         await page.goto(`${base}/${hash}`, { waitUntil: "networkidle" });
         await page.waitForSelector("#view h1");
-        if (hash === "#/review/SYN-C-0007") {
+        if (hash === "#/review/SYN-C-0102") {
           await page.waitForSelector("[data-decision='confirm']");
           await page.click("[data-decision='confirm']");
           await page.waitForSelector("#fhir");

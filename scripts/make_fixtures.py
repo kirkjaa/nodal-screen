@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
 
 from screen import flags
 
-SAMPLES = ROOT / "data" / "samples"
+SAMPLES = ROOT / "tests" / "fixtures"
 NOTE = "Illustrative shell fixture. Hand-written fixture; replaced by pipeline output."
 
 

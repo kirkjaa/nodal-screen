@@ -66,7 +66,7 @@ svg{max-width:100%}
 .queue a{display:block;min-width:0;max-width:100%;overflow-wrap:anywhere;color:var(--text);text-decoration:none}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
 .actions button[aria-pressed=true]{border-color:var(--text)}
-.field{display:grid;gap:4px;min-width:0;max-width:100%}
+.field{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;max-width:100%}
 textarea{resize:vertical}
 .fhir{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0;direction:ltr;font-family:var(--font-mono);font-size:12px;max-width:100%;margin:0}
 .stack{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}

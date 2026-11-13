@@ -10,6 +10,7 @@ from screen import flags
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLES = ROOT / "data" / "samples"
+FIXTURES = ROOT / "tests" / "fixtures"
 CATALOGUE_UNITS = {
     "gait_speed": "m/s",
     "cadence": "steps/min",
@@ -29,8 +30,20 @@ CATALOGUE_UNITS = {
 }
 
 
+def session_paths(folder):
+    return [path for path in sorted(folder.glob("*.json")) if path.name != "index.json"]
+
+
 def sample_paths():
-    return [path for path in sorted(SAMPLES.glob("*.json")) if path.name != "index.json"]
+    return session_paths(SAMPLES) + session_paths(FIXTURES)
+
+
+def test_both_folders_hold_sessions():
+    assert session_paths(SAMPLES)
+    assert (FIXTURES / "SYN-C-0007.json").is_file()
+    assert (FIXTURES / "SYN-A-0102.json").is_file()
+    assert not (SAMPLES / "SYN-C-0007.json").exists()
+    assert not (SAMPLES / "SYN-A-0102.json").exists()
 
 
 def metrics_of(session):

@@ -27,9 +27,9 @@ def test_health():
 
 
 def test_known_session():
-    res = client.get("/api/session/SYN-C-0007")
+    res = client.get("/api/session/SYN-C-0101")
     assert res.status_code == 200
-    assert res.json()["participant"]["pid"] == "SYN-C-0007"
+    assert res.json()["participant"]["pid"] == "SYN-C-0101"
 
 
 def test_unknown_session():
@@ -38,10 +38,10 @@ def test_unknown_session():
 
 
 def test_flag_off_returns_stored_texts():
-    stored = client.get("/api/ai/SYN-C-0007")
+    stored = client.get("/api/ai/SYN-C-0101")
     assert stored.status_code == 200
     assert stored.json() == {"ai_texts": {}, "live": False}
-    res = client.post("/api/ai/SYN-C-0007")
+    res = client.post("/api/ai/SYN-C-0101")
     assert res.status_code == 200
     assert res.json() == {"ai_texts": {}, "live": False}
     assert main._live_calls == 0
@@ -55,7 +55,7 @@ def test_live_flag_is_offline(monkeypatch):
         raise AssertionError("outbound")
 
     monkeypatch.setattr(socket, "create_connection", blocked)
-    res = client.post("/api/ai/SYN-C-0007")
+    res = client.post("/api/ai/SYN-C-0101")
     assert res.status_code == 503
     assert "not configured" in res.text.lower()
     assert main._live_calls == 1
@@ -65,9 +65,9 @@ def test_live_flag_is_offline(monkeypatch):
 def test_cap_stops_at_the_limit(monkeypatch):
     monkeypatch.setenv("NODAL_LIVE_AI", "1")
     monkeypatch.setenv("NODAL_DAILY_LIVE_RUNS", "1")
-    first = client.post("/api/ai/SYN-A-0102")
-    second = client.post("/api/ai/SYN-A-0102")
-    third = client.post("/api/ai/SYN-C-0007")
+    first = client.post("/api/ai/SYN-A-0201")
+    second = client.post("/api/ai/SYN-A-0201")
+    third = client.post("/api/ai/SYN-C-0101")
     assert first.status_code == 503
     assert second.status_code == 429
     assert third.status_code == 429
@@ -77,8 +77,8 @@ def test_cap_stops_at_the_limit(monkeypatch):
 def test_default_cap_is_ten(monkeypatch):
     monkeypatch.setenv("NODAL_LIVE_AI", "1")
     for _ in range(10):
-        assert client.post("/api/ai/SYN-C-0007").status_code == 503
-    assert client.post("/api/ai/SYN-C-0007").status_code == 429
+        assert client.post("/api/ai/SYN-C-0101").status_code == 503
+    assert client.post("/api/ai/SYN-C-0101").status_code == 429
     assert main._live_calls == 10
 
 
