@@ -13,7 +13,8 @@ Cards marked *(card later)* are written by Claude after the cards before them ar
 | T04 | Cursor | Cohort generator and programme dashboard with the small-cell rule | T02 | draft |
 | T05 | Cursor | Clinician review queue, pathway choice, FHIR R4 preview | T01 | draft |
 | T06 | Cursor | Enrolment and consent, capture protocol, history view, About page draft | T01 | draft |
-| C05 | Claude | Participant report page | T01, C02 | |
+| T11 | Cursor | Participant report from Claude's spec (C05), fixtures retired | C02, T05, T06, T07 | ready after those merge |
+| C05 | Claude | Report spec (T11 card) and gate | T11 | |
 | T07 | Cursor | Server API (stored AI texts, capped live AI behind a flag), Dockerfile, `deploy.ps1` modeled on CellPilot (C08's build half) | T01 | ready |
 | C06 | Claude | Frontend polish pass over every screen, EN and AR, desktop and phone | T04 to T06 | |
 | T10 | Cursor | AI text generator: prompts, checks, dry run with cost estimate, fake-client tests; never a paid call | T01 | ready |
