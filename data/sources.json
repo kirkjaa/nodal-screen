@@ -36,13 +36,13 @@
     "verified": false
   },
   "ewgsop2": {
-    "citation": "Cruz-Jentoft AJ, Bahat G, Bauer J, et al. Sarcopenia: revised European consensus. Age Ageing. 2019;48(1):16-31.",
+    "citation": "Cruz-Jentoft AJ, Bahat G, Bauer J, et al. Sarcopenia: revised European consensus on definition and diagnosis. Age Ageing. 2019;48(1):16-31.",
     "doi_or_url": "https://doi.org/10.1093/ageing/afy169",
     "used_for": "Five-rise chair-stand cut-off and gait-speed cut-off for low performance.",
     "verified": false
   },
   "awgs2019": {
-    "citation": "Chen LK, et al. Asian Working Group for Sarcopenia: 2019 consensus update. J Am Med Dir Assoc. 2020;21(3):300-307.",
+    "citation": "Chen LK, et al. Asian Working Group for Sarcopenia: 2019 Consensus Update on Sarcopenia Diagnosis and Treatment. J Am Med Dir Assoc. 2020;21(3):300-307.",
     "doi_or_url": "https://pubmed.ncbi.nlm.nih.gov/32033882/",
     "used_for": "6 m gait speed and five-time chair-stand cut-offs. Taken from the PubMed abstract; the full text was not opened.",
     "verified": false

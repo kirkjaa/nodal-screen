@@ -122,7 +122,8 @@ def test_unread_sources_and_catalog():
     assert set(catalog) == expected
     assert all(item["verified"] is False for item in catalog.values())
     pending = [row for row in tables.norms if row.status == "placeholder"]
-    assert {row.metric for row in pending} == {"step_time", "stride_length"}
+    assert len(pending) == 1
+    assert pending[0].metric == "stride_length"
     assert all(row.mean is None and row.source_id == "voss2020" for row in pending)
     assert all(row.sd is None for row in tables.norms if row.source_id in {"bohannon2011", "bohannon2006tug", "springer2007"})
     assert all(row.status != "verified" for row in tables.norms + tables.cutoffs)

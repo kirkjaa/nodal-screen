@@ -29,7 +29,6 @@ voss2020,double_support,all,5,6,"inertial sensors, self-selected speed",16.29,3.
 voss2020,double_support,all,7,8,"inertial sensors, self-selected speed",17.57,3.79,29,Table 2 self-selected,transcribed
 voss2020,double_support,all,9,10,"inertial sensors, self-selected speed",17.28,3.11,22,Table 2 self-selected,transcribed
 voss2020,double_support,all,11,13,"inertial sensors, self-selected speed",15.67,2.37,,Table 2 self-selected,transcribed
-voss2020,step_time,all,,,"inertial sensors, self-selected speed",,,,Table 2 does not report step time,placeholder
 bohannon2006tug,tug_time,all,60,69,"meta-analysis, usual pace, 3 m or 10 ft",8.1,,176,Table 2 mean (95% CI),transcribed
 bohannon2006tug,tug_time,all,70,79,"meta-analysis, usual pace, 3 m or 10 ft",9.2,,798,Table 2 mean (95% CI),transcribed
 bohannon2006tug,tug_time,all,80,99,"meta-analysis, usual pace, 3 m or 10 ft",11.3,,1102,Table 2 mean (95% CI),transcribed
