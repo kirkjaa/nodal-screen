@@ -705,5 +705,8 @@
   },
   "review": null,
   "history": [],
-  "ai_texts": {}
+  "ai_texts": {},
+  "replay": {
+    "gait": "data/replay/SYN-C-0103.json"
+  }
 }

@@ -704,5 +704,8 @@
   },
   "review": null,
   "history": [],
-  "ai_texts": {}
+  "ai_texts": {},
+  "replay": {
+    "gait": "data/replay/SYN-A-0202.json"
+  }
 }

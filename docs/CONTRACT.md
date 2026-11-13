@@ -1,4 +1,4 @@
-# NODAL Screen data contract (v1.3, 13 Nov 2026: NODAL screening rules fill the metric `cutoff`; v1.2 added consent type, kit, QC, curves and metric definitions)
+# NODAL Screen data contract (v1.4, 13 Nov 2026: gait replay file; v1.3 NODAL rules fill the metric `cutoff`; v1.2 consent type, kit, QC, curves, metric definitions)
 
 Owner: Claude Code. Cursor agents read it and build against it; they propose changes in their done note and never edit this file.
 
@@ -61,6 +61,19 @@ Every session and the cohort carry `provenance`, shown as a badge on every scree
 - `qc.keypoint_confidence` is the mean tracking confidence of the shoulders, hips, knees and ankles over the measured walk. `qc.calib_residual_px` is `null` when no camera was involved (every synthetic session).
 - `curves` arrays have 101 points (0 to 100 % of the gait cycle, heel strike to heel strike), degrees, the mean over the person's strides. Curve names: `hip_flexion`, `knee_flexion`; `ankle_dorsiflexion` and `hip_adduction` are absent in v1 (not reliable from 17 body points). `norm_mean` and `norm_sd` are empty arrays when no source for a reference band is loaded, which is every curve in v1; the screen then draws the person's curves without a band.
 - Gait metrics are measured over the middle 10 m of the walk (2 m to 12 m), as in a 10 m walk test.
+- `replay` points to movement the report can play back: `{"gait": "data/replay/<pid>.json"}`, or absent. The file is the same take the gait analysis measured, never a reconstruction from the curves:
+
+```json
+{"schema": "nodal-screen/replay@1", "provenance": "synthetic", "pid": "SYN-A-0201", "visit_id": "V1", "task": "gait",
+ "fps": 30, "units": "mm", "axes": "x forward along the walkway (0 at the first frame's pelvis), y to the participant's left, z up, floor at z = 0",
+ "joints": ["nose", "...", "left_big_toe", "left_small_toe", "left_heel", "right_big_toe", "right_small_toe", "right_heel"],
+ "frames": [[[0, 92, 1503], null, "..."]],
+ "events": {"left": [{"hs": 4}, {"to": 23}], "right": [{"hs": 21}]},
+ "events_note": "Heel strike (hs) and toe-off (to) frames as detected by the gait analysis.",
+ "window_note": "3.5 s from the middle of the measured 10 m."}
+```
+
+  `frames[i][j]` is joint `j` at frame `i` as `[x, y, z]` in whole millimetres, or `null` where the point was not tracked; the viewer shows a gap there, never an interpolated point. Left is the participant's left in every view and in both languages. The viewer may place a cursor on the curves from the events (heel strike to heel strike is 0 to 100 %); it never computes a metric or a flag.
 - `review` is filled when a clinician acts: `{"clinician": "CLN-01", "decision": "confirm" | "dismiss" | "recapture", "pathway": "<code>", "note": "", "at": "<ISO time>"}`. In the hosted prototype, review actions are kept in the browser only and the screen says so.
 - `ai_texts` holds texts written by a language model from the metrics and the clinician's decision, never from video: `{"family_letter": {"en": "", "ar": "", "model": "", "generated_at": "", "status": "stored-sample"}, "clinician_brief": {...}}`. The screen labels them "Drafted by AI from the measurements. A clinician approves before anything is sent."
 

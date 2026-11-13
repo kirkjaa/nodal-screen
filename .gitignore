@@ -1,6 +1,7 @@
 # Footage and derived data stay out of git; only consented sample clips are added on purpose.
 data/*
 !data/samples/
+!data/replay/
 !data/norms.csv
 !data/cutoffs.csv
 !data/sources.json

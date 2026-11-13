@@ -2,50 +2,109 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "nodal-screen/session@1",
   "type": "object",
-  "required": ["schema", "provenance", "provenance_note", "participant", "visit", "qc", "tasks", "flags", "suggested_pathway"],
+  "required": [
+    "schema",
+    "provenance",
+    "provenance_note",
+    "participant",
+    "visit",
+    "qc",
+    "tasks",
+    "flags",
+    "suggested_pathway"
+  ],
   "properties": {
-    "schema": { "const": "nodal-screen/session@1" },
-    "provenance": { "enum": ["synthetic", "simulated-m1", "measured"] },
-    "provenance_note": { "type": "string", "minLength": 1 },
+    "schema": {
+      "const": "nodal-screen/session@1"
+    },
+    "provenance": {
+      "enum": [
+        "synthetic",
+        "simulated-m1",
+        "measured"
+      ]
+    },
+    "provenance_note": {
+      "type": "string",
+      "minLength": 1
+    },
     "participant": {
       "type": "object",
-      "required": ["pid", "group", "age_y", "sex"],
+      "required": [
+        "pid",
+        "group",
+        "age_y",
+        "sex"
+      ],
       "properties": {
-        "pid": { "type": "string" },
-        "group": { "enum": ["child", "adult"] },
-        "age_y": { "type": "number" },
-        "sex": { "enum": ["F", "M"] }
+        "pid": {
+          "type": "string"
+        },
+        "group": {
+          "enum": [
+            "child",
+            "adult"
+          ]
+        },
+        "age_y": {
+          "type": "number"
+        },
+        "sex": {
+          "enum": [
+            "F",
+            "M"
+          ]
+        }
       }
     },
-    "visit": { "type": "object" },
+    "visit": {
+      "type": "object"
+    },
     "qc": {
       "type": "object",
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "properties": {
-        "status": { "enum": ["ok", "insufficient"] }
+        "status": {
+          "enum": [
+            "ok",
+            "insufficient"
+          ]
+        }
       }
     },
     "tasks": {
       "type": "object",
       "additionalProperties": {
         "type": "object",
-        "required": ["metrics"],
+        "required": [
+          "metrics"
+        ],
         "properties": {
           "metrics": {
             "type": "array",
-            "items": { "$ref": "#/$defs/metric" }
+            "items": {
+              "$ref": "#/$defs/metric"
+            }
           },
-          "curves": { "type": "object" }
+          "curves": {
+            "type": "object"
+          }
         }
       }
     },
     "flags": {
       "type": "array",
-      "items": { "$ref": "#/$defs/flag" }
+      "items": {
+        "$ref": "#/$defs/flag"
+      }
     },
     "suggested_pathway": {
       "type": "object",
-      "required": ["code"],
+      "required": [
+        "code"
+      ],
       "properties": {
         "code": {
           "enum": [
@@ -60,18 +119,50 @@
         },
         "reason_flag_ids": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
-    "review": { "type": ["object", "null"] },
-    "history": { "type": "array" },
-    "ai_texts": { "type": "object" }
+    "review": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "history": {
+      "type": "array"
+    },
+    "ai_texts": {
+      "type": "object"
+    },
+    "replay": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "gait": {
+          "type": "string",
+          "pattern": "^data/replay/[A-Z0-9-]+\\.json$"
+        }
+      },
+      "additionalProperties": false
+    }
   },
   "$defs": {
     "metric": {
       "type": "object",
-      "required": ["id", "side", "value", "unit", "ref", "cutoff", "status"],
+      "required": [
+        "id",
+        "side",
+        "value",
+        "unit",
+        "ref",
+        "cutoff",
+        "status"
+      ],
       "properties": {
         "id": {
           "enum": [
@@ -92,63 +183,164 @@
             "hop_count"
           ]
         },
-        "side": { "enum": ["left", "right", null] },
-        "value": { "type": ["number", "null"] },
-        "unit": { "type": "string" },
+        "side": {
+          "enum": [
+            "left",
+            "right",
+            null
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
         "ref": {
           "anyOf": [
-            { "type": "null" },
+            {
+              "type": "null"
+            },
             {
               "type": "object",
-              "required": ["kind", "source_id", "mean", "sd", "z"],
+              "required": [
+                "kind",
+                "source_id",
+                "mean",
+                "sd",
+                "z"
+              ],
               "properties": {
-                "kind": { "const": "norm" },
-                "source_id": { "type": "string" },
-                "mean": { "type": ["number", "null"] },
-                "sd": { "type": ["number", "null"] },
-                "z": { "type": ["number", "null"] },
-                "status": { "type": "string" }
+                "kind": {
+                  "const": "norm"
+                },
+                "source_id": {
+                  "type": "string"
+                },
+                "mean": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "sd": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "z": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": "string"
+                }
               }
             }
           ]
         },
         "cutoff": {
           "anyOf": [
-            { "type": "null" },
+            {
+              "type": "null"
+            },
             {
               "type": "object",
-              "required": ["source_id", "threshold", "op", "met"],
+              "required": [
+                "source_id",
+                "threshold",
+                "op",
+                "met"
+              ],
               "properties": {
-                "source_id": { "type": "string" },
-                "threshold": { "type": "number" },
-                "op": { "enum": [">=", ">", "<=", "<"] },
-                "met": { "type": "boolean" }
+                "source_id": {
+                  "type": "string"
+                },
+                "threshold": {
+                  "type": "number"
+                },
+                "op": {
+                  "enum": [
+                    ">=",
+                    ">",
+                    "<=",
+                    "<"
+                  ]
+                },
+                "met": {
+                  "type": "boolean"
+                }
               }
             }
           ]
         },
         "status": {
-          "enum": ["insufficient", "out_of_range", "borderline", "in_range", "no_reference"]
+          "enum": [
+            "insufficient",
+            "out_of_range",
+            "borderline",
+            "in_range",
+            "no_reference"
+          ]
         }
       }
     },
     "flag": {
       "type": "object",
-      "required": ["id", "rule", "severity", "metric_ids", "evidence", "confidence", "source_ids"],
+      "required": [
+        "id",
+        "rule",
+        "severity",
+        "metric_ids",
+        "evidence",
+        "confidence",
+        "source_ids"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "rule": { "enum": ["norm_z", "cutoff", "asymmetry", "toe_walk", "change"] },
-        "severity": { "enum": ["flag", "watch"] },
-        "title": { "type": "string" },
+        "id": {
+          "type": "string"
+        },
+        "rule": {
+          "enum": [
+            "norm_z",
+            "cutoff",
+            "asymmetry",
+            "toe_walk",
+            "change"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "flag",
+            "watch"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
         "metric_ids": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
-        "evidence": { "type": "string" },
-        "confidence": { "type": "string" },
+        "evidence": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string"
+        },
         "source_ids": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     }
