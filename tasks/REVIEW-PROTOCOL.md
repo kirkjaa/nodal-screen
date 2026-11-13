@@ -34,7 +34,7 @@ python -m pytest -q
 $env:NODAL_PUSH_OK = "1"; git push origin main  # a pre-push hook blocks every other push
 ```
 
-**Only this step merges or pushes, and only after Kirk pastes "Merge T0N".** A task chat or a review chat never merges or pushes, even when its work looks finished. Never force-push `main`. If the rebase conflicts, stop and say so.
+**Only this step merges or pushes, and only after Kirk pastes "Merge T0N".** A task chat or a review chat never merges or pushes, even when its work looks finished. Never force-push `main`. If the rebase conflicts only in `web/i18n/*.json`, the route table in `web/app.js` or the route list in `scripts/shots.cjs`, keep both sides and run `python scripts/verify.py`; any other conflict, stop and say so.
 
 ## 4. Next cards, drafted by Cursor
 
